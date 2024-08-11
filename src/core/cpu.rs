@@ -25,6 +25,32 @@ pub struct CPU {
     register_sp: u16,
     register_pc: u16,
 }
+
+macro_rules! set_register_value {
+    ($self:expr, $reg:expr, $($variant:ident => $field:ident),*) => {
+        match $reg {
+            $(
+                RegisterValue::$variant(value) => {
+                    $self.$field = *value;
+                }
+            )*
+            _ => {}
+        }
+    };
+
+    ($self:expr, $reg:expr, $($variant:ident => ($field1:ident, $field2:ident)),*) => {
+        match $reg {
+            $(
+                RegisterValue::$variant(value) => {
+                    $self.$field1 = (*value & 0xFF) as u8;
+                    $self.$field2 = ((*value >> 8) & 0xFF) as u8;
+                }
+            )*
+            _ => {}
+        }
+    };
+}
+
 impl CPU {
     pub fn new() -> CPU {
         CPU {
@@ -40,50 +66,27 @@ impl CPU {
             register_pc: 0,
         }
     }
-    pub fn set_value<T>(&mut self, reg: &RegisterValue) {
-        match reg {
-            RegisterValue::A(value) => {
-                self.register_a = *value;
-            }
-            RegisterValue::F(value) => {
-                self.register_f = *value;
-            }
-            RegisterValue::B(value) => {
-                self.register_b = *value;
-            }
-            RegisterValue::C(value) => {
-                self.register_c = *value;
-            }
-            RegisterValue::D(value) => {
-                self.register_d = *value;
-            }
-            RegisterValue::E(value) => {
-                self.register_e = *value;
-            }
-            RegisterValue::H(value) => {
-                self.register_h = *value;
-            }
-            RegisterValue::L(value) => {
-                self.register_l = *value;
-            }
-            RegisterValue::SP(value) => {
-                self.register_sp = *value;
-            }
-            RegisterValue::PC(value) => {
-                self.register_pc = *value;
-            }
-            RegisterValue::AF(value) => {
-                self.register_f = *value as u8;
-                self.register_a = (*value >> 8) as u8;
-            }
-            RegisterValue::BC(value) => {
-                self.register_c = *value as u8;
-                self.register_b = (*value >> 8) as u8;
-            }
-            RegisterValue::DE(value) => {
-                self.register_e = *value as u8;
-                self.register_d = (*value >> 8) as u8;
-            }
-        }
+
+    pub fn set_value(&mut self, reg: &RegisterValue) {
+        // 先处理组合寄存器
+        set_register_value!(self, reg,
+            AF => (register_f, register_a),
+            BC => (register_c, register_b),
+            DE => (register_e, register_d)
+        );
+
+        // 处理单独寄存器
+        set_register_value!(self, reg,
+            A => register_a,
+            B => register_b,
+            C => register_c,
+            D => register_d,
+            E => register_e,
+            F => register_f,
+            H => register_h,
+            L => register_l,
+            SP => register_sp,
+            PC => register_pc
+        );
     }
 }

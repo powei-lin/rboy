@@ -14,10 +14,16 @@ struct RboyCli {
     scale: u8,
 }
 
+macro_rules! hi {
+    ($expression:expr) => {
+        // `stringify!` 把表达式*原样*转换成一个字符串。
+        println!("{:?} = {:?}", stringify!($expression), $expression)
+    };
+}
+
 #[macroquad::main("rboy")]
 async fn main() {
-    let mut a = 512u16;
-    println!("a {}", (a >> 8) as u8);
+    hi!(1 + 1);
     let cli = RboyCli::parse();
 
     if !Path::new(&cli.path).exists() {
@@ -51,10 +57,9 @@ async fn main() {
 
         next_frame().await;
         let elapsed_time = now.elapsed();
-        println!(
-            "Running took {} ms.",
-            elapsed_time.as_micros() as f32 / 1000.0
-        );
-        break;
+        // println!(
+        //     "Running took {} ms.",
+        //     elapsed_time.as_micros() as f32 / 1000.0
+        // );
     }
 }
