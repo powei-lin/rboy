@@ -1,0 +1,16 @@
+[package]
+name = "rboy"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.15", features = ["derive"] }
+image = "0.24.9"
+macroquad = "0.4.12"
+viuer = "0.7.1"
+
+[[bin]]
+name = "rboy"
+path = "src/bin/rboy_cli.rs"
+test = false
+bench = false
