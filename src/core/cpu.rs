@@ -1,3 +1,4 @@
+use crate::core::memory;
 pub enum RegisterValue {
     A(u8),
     F(u8),
@@ -14,16 +15,16 @@ pub enum RegisterValue {
     DE(u16),
 }
 pub struct CPU {
-    register_a: u8,
-    register_f: u8,
-    register_b: u8,
-    register_c: u8,
-    register_d: u8,
-    register_e: u8,
-    register_h: u8,
-    register_l: u8,
-    register_sp: u16,
-    register_pc: u16,
+    pub register_a: u8,
+    pub register_f: u8,
+    pub register_b: u8,
+    pub register_c: u8,
+    pub register_d: u8,
+    pub register_e: u8,
+    pub register_h: u8,
+    pub register_l: u8,
+    pub register_sp: u16,
+    pub register_pc: u16,
 }
 
 macro_rules! set_register_value {
@@ -68,14 +69,12 @@ impl CPU {
     }
 
     pub fn set_value(&mut self, reg: &RegisterValue) {
-        // 先处理组合寄存器
         set_register_value!(self, reg,
             AF => (register_f, register_a),
             BC => (register_c, register_b),
             DE => (register_e, register_d)
         );
 
-        // 处理单独寄存器
         set_register_value!(self, reg,
             A => register_a,
             B => register_b,
@@ -88,5 +87,22 @@ impl CPU {
             SP => register_sp,
             PC => register_pc
         );
+    }
+
+    pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
+        let op_addr: u8 = mem.get(self.register_pc);
+        self.register_pc += 1;
+        if op_addr == 0xcb {};
+        match op_addr {
+            0xcb => {
+                let cb_op_addr: u8 = mem.get(self.register_pc);
+                self.register_pc += 1;
+                match cb_op_addr {
+                    _ => todo!(),
+                }
+            }
+            _ => todo!(),
+        }
+        0u8
     }
 }

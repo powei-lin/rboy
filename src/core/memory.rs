@@ -39,4 +39,7 @@ impl Memory {
             initialized: false,
         }
     }
+    pub fn get(&self, addr: u16) -> u8 {
+        self.data[addr as usize]
+    }
 }
