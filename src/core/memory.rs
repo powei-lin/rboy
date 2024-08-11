@@ -8,7 +8,7 @@ pub struct Memory {
     // VRAM and OAM access
     vram_accessible: bool,
     oam_accessible: bool,
-    initialized: bool
+    initialized: bool,
 }
 
 impl Memory {
