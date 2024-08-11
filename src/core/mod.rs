@@ -2,7 +2,7 @@ pub mod cpu;
 pub mod memory;
 
 pub struct Core {
-    cpu: cpu::CPU,
+    pub cpu: cpu::CPU,
     memory: memory::Memory,
 }
 

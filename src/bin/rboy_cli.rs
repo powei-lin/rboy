@@ -16,16 +16,27 @@ struct RboyCli {
 
 #[macroquad::main("rboy")]
 async fn main() {
+    let a = 0b10000000;
+    println!("xor a {:08b}", 0b11111111 ^ a);
+
     let cli = RboyCli::parse();
 
     if !Path::new(&cli.path).exists() {
         eprint!("file doesn't exist.")
     }
 
+    let mut gameboy_core = rboy::core::Core::new(true);
     let mut screen = graphic::Screen::new(cli.scale, false);
 
     let mut i = 0;
+    let mut count = 0;
     loop {
+        gameboy_core.tick();
+        println!(
+            "----------------------------------\n{} {}",
+            count, gameboy_core.cpu
+        );
+        count += 1;
         clear_background(LIGHTGRAY);
 
         let r = i / graphic::GAMEBOY_WINDOW_WIDTH;

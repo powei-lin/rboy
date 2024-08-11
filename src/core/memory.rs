@@ -40,6 +40,13 @@ impl Memory {
         }
     }
     pub fn get(&self, addr: u16) -> u8 {
-        self.data[addr as usize]
+        if !self.initialized {
+            BOOT_ROM_BYTES[addr as usize]
+        } else {
+            self.data[addr as usize]
+        }
+    }
+    pub fn set(&mut self, addr: u16, val: u8) {
+        self.data[addr as usize] = val;
     }
 }
