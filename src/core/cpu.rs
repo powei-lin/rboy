@@ -117,6 +117,15 @@ macro_rules! xor {
         $len
     }};
 }
+macro_rules! bit {
+    ($self:expr, $reg:ident, $shift:expr, $len:expr) => {{
+        let v = ($self.$reg) & (1 << $shift);
+        $self.set_flag(&Flag::Z(v == 0));
+        $self.set_flag(&Flag::N(false));
+        $self.set_flag(&Flag::H(false));
+        $len
+    }};
+}
 
 impl CPU {
     pub fn new() -> CPU {
@@ -210,6 +219,7 @@ impl CPU {
                 let cb_op_addr: u8 = mem.get(self.register_pc);
                 self.register_pc += 1;
                 match cb_op_addr {
+                    0x7c => return bit!(self, register_h, 7, 8),
                     _ => todo!("cb opcode 0x{:2X} \n{}", cb_op_addr, self),
                 }
             }
