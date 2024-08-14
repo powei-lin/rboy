@@ -87,22 +87,51 @@ impl Display for CPU {
 }
 
 macro_rules! ld {
-    ($self:expr, $mem:ident, $variant:ident, "d16", $len:expr) => {{
-        let v = $self.get_mem_u16($mem);
+    ($self:expr, $mem:ident, $variant:ident, $get_mem:ident, $len:expr) => {{
+        let v = $self.$get_mem($mem);
         $self.set_value(&RegisterValue::$variant(v));
         $len
     }};
+    ($self:expr, $mem:ident, ff($to_v:ident), $from_v:ident, $len:expr) => {{
+        if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
+            if let RegisterValue::$to_v(addr0) = $self.get_value(&RegisterValue::$to_v(0)) {
+                let addr = addr0 as u16 + 0xff00;
+                $mem.set(addr, v);
+            }
+        }
+        $len
+    }};
     ($self:expr, $mem:ident, "(HL-)", $variant:ident, $len:expr) => {{
-        // v = cpu.get_value("A")
-        // addr = cpu.get_value("HL")
-        // memory.set(addr, v)
-        // cpu.set_value("HL", cpu.get_value("HL") - 1)
-        // return 8
         let v = $self.$variant;
         if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
             $mem.set(addr, v);
             $self.set_value(&RegisterValue::HL(addr - 1))
         }
+        $len
+    }};
+}
+
+macro_rules! inc {
+    // def IS_0x0C(cpu: CPU, memory: Memory) -> int:
+    // # INC C
+    // # 1 4
+    // # Z 0 H -
+    // v = cpu.get_value("C")
+    // v += 1
+    // cpu.set_value("C", v)
+    // h = ((v & 0xF) == 0)
+    // v = cpu.get_value("C")
+
+    // # set flag
+    // cpu.set_flag("Z", v == 0)
+    // cpu.set_flag("N", False)
+    // cpu.set_flag("H", h)
+    // return 4
+    ($self:expr, $reg:ident, $len:expr) => {{
+        $self.$reg += 1;
+        $self.set_flag(&Flag::Z($self.$reg == 0));
+        $self.set_flag(&Flag::N(false));
+        $self.set_flag(&Flag::H(($self.$reg & 0xf) == 0));
         $len
     }};
 }
@@ -122,8 +151,30 @@ macro_rules! bit {
         let v = ($self.$reg) & (1 << $shift);
         $self.set_flag(&Flag::Z(v == 0));
         $self.set_flag(&Flag::N(false));
-        $self.set_flag(&Flag::H(false));
+        $self.set_flag(&Flag::H(true));
         $len
+    }};
+}
+macro_rules! check_condition {
+    ($self:expr, $flag:ident) => {{
+        $self.get_flag(&Flag::$flag(false))
+    }};
+    ($self:expr, "N", $flag:ident) => {{
+        !$self.get_flag(&Flag::$flag(false))
+    }};
+}
+
+macro_rules! jr {
+    ($self:expr, $mem:ident, "N", $flag:ident, $len0:expr, $len1:expr) => {{
+        let addr = $self.get_pc_and_move();
+        let v = ($mem.get(addr) as i8) as i16;
+        let c = check_condition!($self, "N", $flag);
+        if c {
+            $self.register_pc = ($self.register_pc as i16 + v) as u16;
+            return $len0;
+        } else {
+            return $len1;
+        }
     }};
 }
 
@@ -203,33 +254,53 @@ impl CPU {
             }
         }
     }
-    fn get_mem_u16(&mut self, mem: &memory::Memory) -> u16 {
-        let v: u16 =
-            mem.get(self.register_pc) as u16 + ((mem.get(self.register_pc + 1) as u16) << 8);
-        println!("get mem {:4x}", v);
-        self.register_pc += 2;
+    pub fn get_flag(&self, flag: &Flag) -> bool {
+        match flag {
+            Flag::Z(_) => return (self.register_f & 0b10000000) != 0,
+            Flag::N(_) => return (self.register_f & 0b01000000) != 0,
+            Flag::H(_) => return (self.register_f & 0b00100000) != 0,
+            Flag::C(_) => return (self.register_f & 0b00010000) != 0,
+        }
+    }
+    fn get_pc_and_move(&mut self) -> u16 {
+        let v = self.register_pc;
+        self.register_pc += 1;
         v
+    }
+    fn get_mem_u8(&mut self, mem: &memory::Memory) -> u8 {
+        mem.get(self.get_pc_and_move())
+    }
+
+    fn get_mem_u16(&mut self, mem: &memory::Memory) -> u16 {
+        let v0 = self.get_mem_u8(mem) as u16;
+        let v1 = self.get_mem_u8(mem) as u16;
+        (v1 << 8) + v0
     }
 
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
-        let op_addr: u8 = mem.get(self.register_pc);
-        self.register_pc += 1;
+        let op_addr: u8 = mem.get(self.get_pc_and_move());
+        println!("instruction {:02x}", op_addr);
         match op_addr {
             0xcb => {
-                let cb_op_addr: u8 = mem.get(self.register_pc);
-                self.register_pc += 1;
+                let cb_op_addr: u8 = mem.get(self.get_pc_and_move());
+                println!("cb instruction {:02x}", cb_op_addr);
                 match cb_op_addr {
                     0x7c => return bit!(self, register_h, 7, 8),
-                    _ => todo!("cb opcode 0x{:2X} \n{}", cb_op_addr, self),
+                    _ => todo!("cb opcode 0x{:02X} \n{}", cb_op_addr, self),
                 }
             }
-            0x01 => return ld!(self, mem, BC, "d16", 12),
-            0x11 => return ld!(self, mem, DE, "d16", 12),
-            0x21 => return ld!(self, mem, HL, "d16", 12),
-            0x31 => return ld!(self, mem, SP, "d16", 12),
+            0x01 => return ld!(self, mem, BC, get_mem_u16, 12),
+            0x0c => return inc!(self, register_c, 4),
+            0x0e => return ld!(self, mem, C, get_mem_u8, 8),
+            0x11 => return ld!(self, mem, DE, get_mem_u16, 12),
+            0x20 => return jr!(self, mem, "N", Z, 12, 8),
+            0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
+            0x31 => return ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => return ld!(self, mem, "(HL-)", register_a, 8),
+            0x3e => return ld!(self, mem, A, get_mem_u8, 8),
             0xaf => return xor!(self, register_a, 4),
-            _ => todo!("opcode 0x{:2X} \n{}", op_addr, self),
+            0xe2 => return ld!(self, mem, ff(C), A, 8),
+            _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
         }
     }
 }

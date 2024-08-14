@@ -16,8 +16,8 @@ struct RboyCli {
 
 #[macroquad::main("rboy")]
 async fn main() {
-    let a = 0b10000000;
-    println!("xor a {:08b}", 0b11111111 ^ a);
+    let a = 129u8;
+    println!("xor a {}", a as i8);
 
     let cli = RboyCli::parse();
 
@@ -37,6 +37,7 @@ async fn main() {
             count, gameboy_core.cpu
         );
         count += 1;
+        continue;
         clear_background(LIGHTGRAY);
 
         let r = i / graphic::GAMEBOY_WINDOW_WIDTH;
