@@ -5,6 +5,7 @@ const RAM_SIZE: usize = 2usize.pow(16);
 
 pub struct Memory {
     data: [u8; RAM_SIZE],
+    pub game_rom: Vec<u8>,
     // VRAM and OAM access
     vram_accessible: bool,
     oam_accessible: bool,
@@ -34,16 +35,28 @@ impl Memory {
 
         Memory {
             data,
+            game_rom: Vec::<u8>::new(),
             vram_accessible: true,
             oam_accessible: true,
             initialized: false,
         }
     }
     pub fn get(&self, addr: u16) -> u8 {
-        if !self.initialized {
-            BOOT_ROM_BYTES[addr as usize]
+        if self.initialized || addr > 0xff {
+            if addr < 0x8000 {
+                self.game_rom[addr as usize]
+            } else if addr < 0xa000 {
+                // VRAM
+                if self.vram_accessible {
+                    self.data[addr as usize]
+                } else {
+                    0xff
+                }
+            } else {
+                self.data[addr as usize]
+            }
         } else {
-            self.data[addr as usize]
+            BOOT_ROM_BYTES[addr as usize]
         }
     }
     pub fn set(&mut self, addr: u16, val: u8) {

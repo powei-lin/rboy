@@ -26,6 +26,7 @@ async fn main() {
     }
 
     let mut gameboy_core = rboy::core::Core::new(true);
+    gameboy_core.load_game_rom(&cli.path);
     let mut screen = graphic::Screen::new(cli.scale, false);
 
     let mut i = 0;
