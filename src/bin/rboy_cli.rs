@@ -16,8 +16,8 @@ struct RboyCli {
 
 #[macroquad::main("rboy")]
 async fn main() {
-    let a = 129u8;
-    println!("xor a {}", a as i8);
+    let a = 128u8;
+    println!("xor a {}", a << 1);
 
     let cli = RboyCli::parse();
 

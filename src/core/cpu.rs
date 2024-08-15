@@ -165,11 +165,13 @@ macro_rules! inc {
 
 macro_rules! xor {
     ($self:expr, $reg:ident, $len:expr) => {{
-        let v = $self.register_a ^ $self.$reg;
-        $self.set_flag(&Flag::Z(v == 0));
-        $self.set_flag(&Flag::N(false));
-        $self.set_flag(&Flag::H(false));
-        $self.set_flag(&Flag::C(false));
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let z = ($self.register_a ^ v) == 0;
+            $self.set_flag(&Flag::Z(v == 0));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H(false));
+            $self.set_flag(&Flag::C(false));
+        }
         $len
     }};
 }
@@ -235,6 +237,36 @@ macro_rules! jr {
         }
     }};
 }
+
+fn rla(cpu: &mut CPU, len: u8) -> u8 {
+    let c = cpu.register_a >= 0b10000000;
+    let mut v = cpu.register_a << 1;
+    if cpu.get_flag(&Flag::C(false)) {
+        v += 1;
+    }
+    cpu.register_a = v;
+    cpu.set_flag(&Flag::Z(false));
+    cpu.set_flag(&Flag::N(false));
+    cpu.set_flag(&Flag::H(false));
+    cpu.set_flag(&Flag::C(c));
+    len
+}
+// # RLA
+// # 1 4
+// # 0 0 0 C
+// v = (cpu.get_value("A") << 1)
+// if cpu.get_flag("C"):
+//     v += 1
+// c = (v > 0xff)
+// v = v & 0xff
+// cpu.set_value("A", v)
+
+// # set flag
+// cpu.set_flag("Z", False)
+// cpu.set_flag("N", False)
+// cpu.set_flag("H", False)
+// cpu.set_flag("C", c)
+// raise NotImplementedError
 
 impl CPU {
     pub fn new() -> CPU {
@@ -353,6 +385,7 @@ impl CPU {
             0x0c => return inc!(self, register_c, 4),
             0x0e => return ld!(self, mem, C, get_mem_u8, 8),
             0x11 => return ld!(self, mem, DE, get_mem_u16, 12),
+            0x17 => return rla(self, 4),
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
@@ -361,7 +394,7 @@ impl CPU {
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
             0x4f => return ld!(self, C, A, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
-            0xaf => return xor!(self, register_a, 4),
+            0xaf => return xor!(self, A, 4),
             0xc5 => return push!(self, mem, BC, 16),
             0xcd => return call!(self, mem, "a16", 24),
             0xe0 => return ld!(self, mem, "(a8)", register_a, 12),
