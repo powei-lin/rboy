@@ -153,6 +153,16 @@ macro_rules! push {
     }};
 }
 
+macro_rules! pop {
+    ($self:expr, $mem:ident, $reg:ident, $len:expr) => {{
+        let v =
+            $mem.get($self.register_sp) as u16 + (($mem.get($self.register_sp + 1) as u16) << 8);
+        $self.set_value(&RegisterValue::$reg(v));
+        $self.register_sp += 2;
+        $len
+    }};
+}
+
 macro_rules! inc {
     ($self:expr, $reg:ident, $len:expr) => {{
         $self.$reg += 1;
@@ -217,7 +227,7 @@ macro_rules! rl {
             // set flag
             $self.set_flag(&Flag::Z(v == 0));
             $self.set_flag(&Flag::N(false));
-            $self.set_flag(&Flag::H(true));
+            $self.set_flag(&Flag::H(false));
             $self.set_flag(&Flag::C(c));
         }
         $len
@@ -251,22 +261,6 @@ fn rla(cpu: &mut CPU, len: u8) -> u8 {
     cpu.set_flag(&Flag::C(c));
     len
 }
-// # RLA
-// # 1 4
-// # 0 0 0 C
-// v = (cpu.get_value("A") << 1)
-// if cpu.get_flag("C"):
-//     v += 1
-// c = (v > 0xff)
-// v = v & 0xff
-// cpu.set_value("A", v)
-
-// # set flag
-// cpu.set_flag("Z", False)
-// cpu.set_flag("N", False)
-// cpu.set_flag("H", False)
-// cpu.set_flag("C", c)
-// raise NotImplementedError
 
 impl CPU {
     pub fn new() -> CPU {
@@ -395,6 +389,7 @@ impl CPU {
             0x4f => return ld!(self, C, A, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
             0xaf => return xor!(self, A, 4),
+            0xc1 => return pop!(self, mem, BC, 12),
             0xc5 => return push!(self, mem, BC, 16),
             0xcd => return call!(self, mem, "a16", 24),
             0xe0 => return ld!(self, mem, "(a8)", register_a, 12),
