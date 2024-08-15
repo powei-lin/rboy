@@ -121,11 +121,20 @@ macro_rules! ld {
         }
         $len
     }};
-    ($self:expr, $mem:ident, "(HL-)", $from_v:ident, $len:expr) => {{
+    // ($self:expr, $mem:ident, "(HL-)", $from_v:ident, $len:expr) => {{
+    //     if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
+    //         if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
+    //             $mem.set(addr, v);
+    //             $self.set_value(&RegisterValue::HL(addr - 1))
+    //         }
+    //     }
+    //     $len
+    // }};
+    ($self:expr, $mem:ident, "(HL)"$mem_shift:tt, $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
             if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
                 $mem.set(addr, v);
-                $self.set_value(&RegisterValue::HL(addr - 1))
+                $self.set_value(&RegisterValue::HL(addr $mem_shift 1))
             }
         }
         $len
@@ -161,6 +170,20 @@ macro_rules! pop {
             $mem.get($self.register_sp) as u16 + (($mem.get($self.register_sp + 1) as u16) << 8);
         $self.set_value(&RegisterValue::$reg(v));
         $self.register_sp += 2;
+        $len
+    }};
+}
+
+macro_rules! dec {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let h = ((v & 0xf) == 0);
+            let v = v - 1;
+            $self.set_value(&RegisterValue::$reg(v));
+            $self.set_flag(&Flag::Z(v == 0));
+            $self.set_flag(&Flag::N(true));
+            $self.set_flag(&Flag::H(h));
+        }
         $len
     }};
 }
@@ -223,7 +246,8 @@ macro_rules! call {
 macro_rules! rl {
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
-            let c = (v >= 0b1000000);
+            let c = (v >= 128);
+            println!("c {}", c);
             let mut v = v << 1;
             if $self.get_flag(&Flag::C(false)) {
                 v += 1;
@@ -254,7 +278,7 @@ macro_rules! jr {
 }
 
 fn rla(cpu: &mut CPU, len: u8) -> u8 {
-    let c = cpu.register_a >= 0b10000000;
+    let c = cpu.register_a >= 128;
     let mut v = cpu.register_a << 1;
     if cpu.get_flag(&Flag::C(false)) {
         v += 1;
@@ -380,6 +404,7 @@ impl CPU {
                 }
             }
             0x01 => return ld!(self, mem, BC, get_mem_u16, 12),
+            0x05 => return dec!(self, B, 4),
             0x06 => return ld!(self, mem, B, "d8", 8),
             0x0c => return inc!(self, C, 4),
             0x0e => return ld!(self, mem, C, get_mem_u8, 8),
@@ -388,8 +413,9 @@ impl CPU {
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
+            // 0x22 => return ld!(self, mem, "(HL)"+, A, 8),
             0x31 => return ld!(self, mem, SP, get_mem_u16, 12),
-            0x32 => return ld!(self, mem, "(HL-)", A, 8),
+            0x32 => return ld!(self, mem, "(HL)"-, A, 8),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
             0x4f => return ld!(self, C, A, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
