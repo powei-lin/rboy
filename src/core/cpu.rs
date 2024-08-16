@@ -298,6 +298,13 @@ fn rla(cpu: &mut CPU, len: u8) -> u8 {
     len
 }
 
+fn ret(cpu: &mut CPU, mem: &memory::Memory) -> u8 {
+    let v = mem.get(cpu.register_sp) as u16 + ((mem.get(cpu.register_sp + 1) as u16) << 8);
+    cpu.register_sp += 2;
+    cpu.register_pc = v;
+    16
+}
+
 impl CPU {
     pub fn new() -> CPU {
         CPU {
@@ -430,6 +437,7 @@ impl CPU {
             0xaf => return xor!(self, A, 4),
             0xc1 => return pop!(self, mem, BC, 12),
             0xc5 => return push!(self, mem, BC, 16),
+            0xc9 => return ret(self, mem),
             0xcd => return call!(self, mem, "a16", 24),
             0xe0 => return ld!(self, mem, "(a8)", A, 12),
             0xe2 => return ld!(self, mem, ff(C), A, 8),
