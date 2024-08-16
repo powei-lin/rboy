@@ -305,6 +305,24 @@ fn ret(cpu: &mut CPU, mem: &memory::Memory) -> u8 {
     16
 }
 
+fn cp_impl(cpu: &mut CPU, t: u8) {
+    let z = cpu.register_a == t;
+    let h = (cpu.register_a & 0xf) < (t & 0xf);
+    let c = cpu.register_a < t;
+    cpu.set_flag(&Flag::Z(z));
+    cpu.set_flag(&Flag::N(true));
+    cpu.set_flag(&Flag::H(h));
+    cpu.set_flag(&Flag::C(c));
+}
+
+macro_rules! cp {
+    ($self:expr, $mem:ident, "d8", $len:expr) => {{
+        let t = $self.get_mem_u8($mem);
+        cp_impl($self, t);
+        $len
+    }};
+}
+
 impl CPU {
     pub fn new() -> CPU {
         CPU {
@@ -423,6 +441,7 @@ impl CPU {
             0x0c => return inc!(self, C, 4),
             0x0e => return ld!(self, mem, C, get_mem_u8, 8),
             0x11 => return ld!(self, mem, DE, get_mem_u16, 12),
+            0x13 => return inc!(self, DE, 8),
             0x17 => return rla(self, 4),
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
@@ -433,6 +452,7 @@ impl CPU {
             0x32 => return ld!(self, mem, "(HL)"-, A, 8),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
             0x4f => return ld!(self, C, A, 4),
+            0x7b => return ld!(self, A, E, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
             0xaf => return xor!(self, A, 4),
             0xc1 => return pop!(self, mem, BC, 12),
@@ -441,6 +461,7 @@ impl CPU {
             0xcd => return call!(self, mem, "a16", 24),
             0xe0 => return ld!(self, mem, "(a8)", A, 12),
             0xe2 => return ld!(self, mem, ff(C), A, 8),
+            0xfe => return cp!(self, mem, "d8", 8),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
         }
     }
