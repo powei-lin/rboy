@@ -121,15 +121,6 @@ macro_rules! ld {
         }
         $len
     }};
-    // ($self:expr, $mem:ident, "(HL-)", $from_v:ident, $len:expr) => {{
-    //     if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
-    //         if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
-    //             $mem.set(addr, v);
-    //             $self.set_value(&RegisterValue::HL(addr - 1))
-    //         }
-    //     }
-    //     $len
-    // }};
     ($self:expr, $mem:ident, "(HL)"$mem_shift:tt, $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
             if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
@@ -141,7 +132,14 @@ macro_rules! ld {
     }};
     ($self:expr, $mem:ident, "(a8)", $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
-            let addr = $mem.get($self.get_pc_and_move()) as u16 + 0xff00;
+            let addr = $self.get_mem_u8($mem) as u16 + 0xff00;
+            $mem.set(addr, v);
+        }
+        $len
+    }};
+    ($self:expr, $mem:ident, "(a16)", $from_v:ident, $len:expr) => {{
+        if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
+            let addr = $self.get_mem_u16($mem);
             $mem.set(addr, v);
         }
         $len
@@ -461,6 +459,7 @@ impl CPU {
             0xcd => return call!(self, mem, "a16", 24),
             0xe0 => return ld!(self, mem, "(a8)", A, 12),
             0xe2 => return ld!(self, mem, ff(C), A, 8),
+            0xea => return ld!(self, mem, "(a16)", A, 16),
             0xfe => return cp!(self, mem, "d8", 8),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
         }
