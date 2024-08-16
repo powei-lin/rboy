@@ -189,7 +189,7 @@ macro_rules! dec {
 }
 
 macro_rules! inc {
-    ($self:expr, $reg:ident, $len:expr) => {{
+    ($self:expr, $reg:ident, 4) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
             let v = v + 1;
             $self.set_value(&RegisterValue::$reg(v));
@@ -197,7 +197,14 @@ macro_rules! inc {
             $self.set_flag(&Flag::N(false));
             $self.set_flag(&Flag::H((v & 0xf) == 0));
         }
-        $len
+        4
+    }};
+    ($self:expr, $reg:ident, 8) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let v = v + 1;
+            $self.set_value(&RegisterValue::$reg(v));
+        }
+        8
     }};
 }
 
@@ -413,7 +420,8 @@ impl CPU {
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
-            // 0x22 => return ld!(self, mem, "(HL)"+, A, 8),
+            0x22 => return ld!(self, mem, "(HL)"+, A, 8),
+            0x23 => return inc!(self, HL, 8),
             0x31 => return ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => return ld!(self, mem, "(HL)"-, A, 8),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
