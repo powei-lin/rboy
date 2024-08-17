@@ -70,8 +70,8 @@ impl Display for CPU {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "Register\nAF: {:02x}{:02x} \nBC: {:02x}{:02x}\nDE: \
-            {:02x}{:02x}\nHL: {:02x}{:02x}\nSP: {:04x}\nPC: {:04x}",
+            "Register\nAF: {:02X}{:02X} \nBC: {:02X}{:02X}\nDE: \
+            {:02X}{:02X}\nHL: {:02X}{:02X}\nSP: {:04X}\nPC: {:04X}",
             self.register_a,
             self.register_f,
             self.register_b,
@@ -252,7 +252,6 @@ macro_rules! rl {
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
             let c = (v >= 128);
-            println!("c {}", c);
             let mut v = v << 1;
             if $self.get_flag(&Flag::C(false)) {
                 v += 1;
@@ -269,6 +268,17 @@ macro_rules! rl {
 }
 
 macro_rules! jr {
+    ($self:expr, $mem:ident, $flag:ident, $len0:expr, $len1:expr) => {{
+        let addr = $self.get_pc_and_move();
+        let v = ($mem.get(addr) as i8) as i16;
+        let c = check_condition!($self, $flag);
+        if c {
+            $self.register_pc = ($self.register_pc as i16 + v) as u16;
+            return $len0;
+        } else {
+            return $len1;
+        }
+    }};
     ($self:expr, $mem:ident, "N", $flag:ident, $len0:expr, $len1:expr) => {{
         let addr = $self.get_pc_and_move();
         let v = ($mem.get(addr) as i8) as i16;
@@ -437,6 +447,7 @@ impl CPU {
             0x05 => return dec!(self, B, 4),
             0x06 => return ld!(self, mem, B, "d8", 8),
             0x0c => return inc!(self, C, 4),
+            0x0d => return dec!(self, C, 4),
             0x0e => return ld!(self, mem, C, get_mem_u8, 8),
             0x11 => return ld!(self, mem, DE, get_mem_u16, 12),
             0x13 => return inc!(self, DE, 8),
@@ -446,9 +457,18 @@ impl CPU {
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
             0x22 => return ld!(self, mem, "(HL)"+, A, 8),
             0x23 => return inc!(self, HL, 8),
+            0x28 => return jr!(self, mem, Z, 12, 8),
+            0x2e => return ld!(self, mem, L, "d8", 8),
+            0x30 => return jr!(self, mem, "N", C, 12, 8),
             0x31 => return ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => return ld!(self, mem, "(HL)"-, A, 8),
+            0x38 => return jr!(self, mem, C, 12, 8),
+            0x3d => return dec!(self, A, 4),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
+            0x4a => return ld!(self, C, D, 4),
+            0x4b => return ld!(self, C, E, 4),
+            0x4c => return ld!(self, C, H, 4),
+            0x4d => return ld!(self, C, L, 4),
             0x4f => return ld!(self, C, A, 4),
             0x7b => return ld!(self, A, E, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
