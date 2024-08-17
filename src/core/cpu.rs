@@ -150,6 +150,14 @@ macro_rules! ld {
         $len
     }};
 }
+macro_rules! ldh {
+    ($self:expr, $mem:ident, $to_v:ident, "(a8)", $len:expr) => {{
+        let addr = $self.get_mem_u8($mem) as u16 + 0xff00;
+        let v = $mem.get(addr);
+        $self.set_value(&RegisterValue::$to_v(v));
+        $len
+    }};
+}
 macro_rules! push {
     ($self:expr, $mem:ident, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
@@ -450,6 +458,7 @@ impl CPU {
                 }
             }
             0x01 => return ld!(self, mem, BC, get_mem_u16, 12),
+            0x04 => return inc!(self, B, 4),
             0x05 => return dec!(self, B, 4),
             0x06 => return ld!(self, mem, B, "d8", 8),
             0x0c => return inc!(self, C, 4),
@@ -460,6 +469,7 @@ impl CPU {
             0x17 => return rla(self, 4),
             0x18 => return jr!(self, mem, 12),
             0x1a => return ld!(self, mem, A, (DE), 8),
+            0x1e => return ld!(self, mem, E, "d8", 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
             0x22 => return ld!(self, mem, "(HL)"+, A, 8),
@@ -472,11 +482,15 @@ impl CPU {
             0x38 => return jr!(self, mem, C, 12, 8),
             0x3d => return dec!(self, A, 4),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
+            0x47 => return ld!(self, B, A, 4),
             0x4a => return ld!(self, C, D, 4),
             0x4b => return ld!(self, C, E, 4),
             0x4c => return ld!(self, C, H, 4),
             0x4d => return ld!(self, C, L, 4),
             0x4f => return ld!(self, C, A, 4),
+            0x57 => return ld!(self, D, A, 4),
+            0x67 => return ld!(self, H, A, 4),
+            0x68 => return ld!(self, L, B, 4),
             0x7b => return ld!(self, A, E, 4),
             0x77 => return ld!(self, mem, (HL), A, 8),
             0xaf => return xor!(self, A, 4),
@@ -487,6 +501,7 @@ impl CPU {
             0xe0 => return ld!(self, mem, "(a8)", A, 12),
             0xe2 => return ld!(self, mem, ff(C), A, 8),
             0xea => return ld!(self, mem, "(a16)", A, 16),
+            0xf0 => return ldh!(self, mem, A, "(a8)", 12),
             0xfe => return cp!(self, mem, "d8", 8),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
         }
