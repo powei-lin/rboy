@@ -268,15 +268,21 @@ macro_rules! rl {
 }
 
 macro_rules! jr {
+    ($self:expr, $mem:ident, $len:expr) => {{
+        let addr = $self.get_pc_and_move();
+        let v = ($mem.get(addr) as i8) as i16;
+        $self.register_pc = ($self.register_pc as i16 + v) as u16;
+        $len
+    }};
     ($self:expr, $mem:ident, $flag:ident, $len0:expr, $len1:expr) => {{
         let addr = $self.get_pc_and_move();
         let v = ($mem.get(addr) as i8) as i16;
         let c = check_condition!($self, $flag);
         if c {
             $self.register_pc = ($self.register_pc as i16 + v) as u16;
-            return $len0;
+            $len0
         } else {
-            return $len1;
+            $len1
         }
     }};
     ($self:expr, $mem:ident, "N", $flag:ident, $len0:expr, $len1:expr) => {{
@@ -285,9 +291,9 @@ macro_rules! jr {
         let c = check_condition!($self, "N", $flag);
         if c {
             $self.register_pc = ($self.register_pc as i16 + v) as u16;
-            return $len0;
+            $len0
         } else {
-            return $len1;
+            $len1
         }
     }};
 }
@@ -452,6 +458,7 @@ impl CPU {
             0x11 => return ld!(self, mem, DE, get_mem_u16, 12),
             0x13 => return inc!(self, DE, 8),
             0x17 => return rla(self, 4),
+            0x18 => return jr!(self, mem, 12),
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
