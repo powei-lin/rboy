@@ -10,7 +10,6 @@ pub struct Memory {
     // VRAM and OAM access
     vram_accessible: bool,
     oam_accessible: bool,
-    initialized: bool,
 }
 
 impl Memory {
@@ -33,17 +32,17 @@ impl Memory {
         data[0xff49] = 0xff;
         data[WINDOW_Y_POSITION_RW] = 0;
         data[WINDOW_X_POSITION_MINUS_7_RW] = 0;
+        data[DISABLE_BOOT_ROM] = 0;
 
         Memory {
             data,
             game_rom: Vec::<u8>::new(),
             vram_accessible: true,
             oam_accessible: true,
-            initialized: false,
         }
     }
     pub fn get(&self, addr: u16) -> u8 {
-        if self.initialized || addr > 0xff {
+        if self.data[DISABLE_BOOT_ROM] > 0 || addr > 0xff {
             if addr < 0x8000 {
                 self.game_rom[addr as usize]
             } else if addr < 0xa000 {

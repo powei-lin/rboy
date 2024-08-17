@@ -7,6 +7,9 @@ pub const LY_COMPARE_RW: usize = 0xff45;
 pub const WINDOW_Y_POSITION_RW: usize = 0xff4a;
 pub const WINDOW_X_POSITION_MINUS_7_RW: usize = 0xff4b;
 
+// io ranges
+pub const DISABLE_BOOT_ROM: usize = 0xff50;
+
 pub const LCD_WIDTH: u32 = 160;
 pub const LCD_HEIGHT: u32 = 144;
 pub const BG_SIZE: u32 = 256;

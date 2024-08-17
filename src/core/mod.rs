@@ -25,4 +25,5 @@ impl Core {
     pub fn tick(&mut self) {
         self.cpu.tick(&mut self.mem);
     }
+    pub fn get_new_frame_buffer() {}
 }
