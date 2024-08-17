@@ -4,7 +4,6 @@ use rboy::{core, graphic};
 use std::path::Path;
 use std::time::Instant;
 
-
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct RboyCli {
@@ -20,7 +19,6 @@ struct RboyCli {
 
 #[macroquad::main("rboy")]
 async fn main() {
-
     let cli = RboyCli::parse();
 
     if !Path::new(&cli.path).exists() {
