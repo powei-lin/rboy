@@ -4,11 +4,6 @@ use rboy::{core, graphic};
 use std::path::Path;
 use std::time::Instant;
 
-use macroquad::ui::{
-    hash, root_ui,
-    widgets::{self, Group},
-    Drag, Ui,
-};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -25,8 +20,6 @@ struct RboyCli {
 
 #[macroquad::main("rboy")]
 async fn main() {
-    let a = 128u8;
-    println!("xor a {}", a << 1);
 
     let cli = RboyCli::parse();
 
