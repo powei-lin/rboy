@@ -20,7 +20,7 @@ impl Memory {
         }
 
         // io map is not ramdom
-        data[CONTROL_ADDR_RW] = 0;
+        data[LCD_CONTROL_RW] = 0;
         data[STATUS_ADDR_RW] = 0x84;
         data[SCROLL_Y_RW] = 0;
         data[SCROLL_X_RW] = 0;

@@ -1,4 +1,4 @@
-pub const CONTROL_ADDR_RW: usize = 0xff40;
+pub const LCD_CONTROL_RW: usize = 0xff40;
 pub const STATUS_ADDR_RW: usize = 0xff41;
 pub const SCROLL_Y_RW: usize = 0xff42;
 pub const SCROLL_X_RW: usize = 0xff43;
