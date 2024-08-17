@@ -61,6 +61,10 @@ impl Memory {
             BOOT_ROM_BYTES[addr as usize]
         }
     }
+    pub fn get_chunck(&self, addr: u16, size: usize) -> &[u8] {
+        let addr = addr as usize;
+        &self.data[addr..addr + size]
+    }
     pub fn set(&mut self, addr: u16, val: u8) {
         self.data[addr as usize] = val;
     }

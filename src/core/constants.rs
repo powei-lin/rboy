@@ -4,6 +4,7 @@ pub const SCROLL_Y_RW: usize = 0xff42;
 pub const SCROLL_X_RW: usize = 0xff43;
 pub const Y_COORDINATE_R: usize = 0xff44;
 pub const LY_COMPARE_RW: usize = 0xff45;
+pub const BG_PALETTE_DATA: usize = 0xff47;
 pub const WINDOW_Y_POSITION_RW: usize = 0xff4a;
 pub const WINDOW_X_POSITION_MINUS_7_RW: usize = 0xff4b;
 

@@ -2,6 +2,8 @@ use crate::core::constants::*;
 
 use super::memory;
 
+const GRAY_SHADES: [u8; 4] = [255, 170, 85, 0];
+
 enum PPUState {
     HBLANK,
     VBLANK,
@@ -26,11 +28,19 @@ struct PixelFetcher {
 
 pub struct PPU {
     lcd_ppu_enable: bool,
-    window_tile_map_area: bool, // false = 9800–9BFF; true = 9C00–9FFF
+
+    /// false = 9800–9BFF; true = 9C00–9FFF
+    window_tile_map_area: bool,
     window_enable: bool,
-    bg_and_window_tile_area: bool, // false = 8800–97FF; true = 8000–8FFF
-    bg_tile_map_area: bool,        // false = 9800–9BFF; true = 9C00–9FFF
-    obj_size: bool,                // false = 8×8; true = 8×16
+
+    /// false = 8800–97FF; true = 8000–8FFF
+    bg_and_window_tile_data_area: bool,
+
+    /// false = 9800–9BFF; true = 9C00–9FFF
+    bg_tile_map_area: bool,
+
+    /// false = 8×8; true = 8×16
+    obj_size: bool,
     obj_enable: bool,
     bg_and_window_enable_priority: bool,
     frame_buffer: Vec<u8>,
@@ -40,15 +50,22 @@ pub struct PPU {
     current_state_cycle: u16,
     pixel_fifo: Vec<u8>,
 }
-// fn data_to_tile(data: &[u8], palette: int = 0) -> np.ndarray:
-// if len(data) % 2 != 0:
-//     raise ValueError
-// i = np.array(data, dtype=np.uint8).reshape(-1, 2)
-// i = np.unpackbits(i, axis=1)
-// i = (i[:, :8] + i[:, 8:] * 2)
-// p = [0b11 & (palette >> (j * 2)) for j in range(4)]
-// p = [GRAY_SHADES[j] for j in p]
-// return np.vectorize(p.__getitem__)(i).astype(np.uint8)
+fn calculate_tile(data: &[u8], palette: u8) -> [u8; 64] {
+    let mut tile_data = [0; 64];
+    let colors: Vec<u8> = (0..4).map(|x| (palette >> (x * 2)) & 0b11).collect();
+    for y in 0..8 {
+        let idx = y * 2;
+        for c in 0..8 {
+            let shift = 7 - c;
+            let upper_bit = (data[idx] >> shift) & 1;
+            let lower_bit = (data[idx + 1] >> shift) & 1;
+            let color_idx = ((upper_bit << 1) + lower_bit) as usize;
+            let color = colors[color_idx];
+            tile_data[y * 8 + c] = GRAY_SHADES[color as usize];
+        }
+    }
+    tile_data
+}
 
 impl PPU {
     pub fn new() -> PPU {
@@ -60,7 +77,7 @@ impl PPU {
             lcd_ppu_enable: false,
             window_tile_map_area: false,
             window_enable: false,
-            bg_and_window_tile_area: false,
+            bg_and_window_tile_data_area: false,
             bg_tile_map_area: false,
             obj_size: false,
             obj_enable: false,
@@ -73,7 +90,67 @@ impl PPU {
             pixel_fifo: vec![],
         }
     }
-    fn draw_bg_frame(&mut self, mem: &memory::Memory) {}
+    fn bg_tile_map_range(&self) -> std::ops::Range<u16> {
+        if self.bg_tile_map_area {
+            0x9c00..0xa000
+        } else {
+            0x9800..0x9c00
+        }
+    }
+    fn bg_tile_data_start_addr(&self) -> u16 {
+        if self.bg_and_window_tile_data_area {
+            0x8000
+        } else {
+            0x8800
+        }
+    }
+    fn draw_bg_frame(&mut self, mem: &memory::Memory) {
+        // let mut start_y = 0;
+        for (i, addr) in self.bg_tile_map_range().enumerate() {
+            let tile_idx = mem.get(addr);
+            let tile_data_addr = tile_idx as u16 * 16 + self.bg_tile_data_start_addr();
+            let palette = mem.get(BG_PALETTE_DATA as u16);
+
+            let tile_data = calculate_tile(mem.get_chunck(tile_data_addr, 16), palette);
+
+            for y in 0..8 {
+                let row = (i / 32) * 8 + y;
+                for x in 0..8 {
+                    let col = (i % 32) * 8 + x;
+                    let bg_frame_buffer_idx = (row * BG_SIZE as usize + col) * 4;
+                    for j in 0..3 {
+                        self.bg_frame_buffer[bg_frame_buffer_idx + j] = tile_data[y * 8 + x];
+                    }
+                }
+            }
+        }
+        //     for i in range(0x9800, 0x9c00):
+        //     tile_idx = mem.get(i)
+        //     tile_data_addr = tile_idx * 16 + 0x8000
+        //     img = data_to_tile([mem.get(tile_data_addr + j) for j in range(16)], mem.get(0xff47))
+        //     img = integer_resize(img, resize_scale, with_outline=True)
+        //     tmp.append(img)
+        //     if len(tmp) == 32:
+        //         combined = np.hstack(tmp)
+        //         if bg is not None:
+        //             bg = np.vstack((bg, combined))
+        //         else:
+        //             bg = combined
+        //         tmp = []
+        // bg = cv2.cvtColor(bg, cv2.COLOR_GRAY2BGR)
+        // scy = mem.get(0xff42)
+        // scx = mem.get(0xff43)
+        // tl = (scx * resize_scale, scy * resize_scale)
+        // tr = ((scx + LCD_WIDTH) * resize_scale, scy * resize_scale)
+        // bl = (scx * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
+        // br = ((scx + LCD_WIDTH) * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
+        // cv2.line(bg, tl, tr, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        // cv2.line(bg, tl, bl, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        // cv2.line(bg, bl, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        // cv2.line(bg, tr, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
+        // cv2.imshow("background map", bg)
+        // # cv2.waitKey(1)
+    }
     pub fn bg_frame_buffer(&self) -> &Vec<u8> {
         &self.bg_frame_buffer
     }
@@ -82,7 +159,7 @@ impl PPU {
         self.lcd_ppu_enable = mem.get_bit(LCD_CONTROL_RW as u16, 7);
         self.window_tile_map_area = mem.get_bit(LCD_CONTROL_RW as u16, 6);
         self.window_enable = mem.get_bit(LCD_CONTROL_RW as u16, 5);
-        self.bg_and_window_tile_area = mem.get_bit(LCD_CONTROL_RW as u16, 4);
+        self.bg_and_window_tile_data_area = mem.get_bit(LCD_CONTROL_RW as u16, 4);
         self.bg_tile_map_area = mem.get_bit(LCD_CONTROL_RW as u16, 3);
         self.obj_size = mem.get_bit(LCD_CONTROL_RW as u16, 2);
         self.obj_enable = mem.get_bit(LCD_CONTROL_RW as u16, 1);
