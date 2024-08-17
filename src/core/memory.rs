@@ -1,3 +1,4 @@
+use crate::core::constants::*;
 use rand::{self, RngCore};
 
 const BOOT_ROM_BYTES: &[u8; 256] = include_bytes!("DMG_ROM.bin");
@@ -20,18 +21,18 @@ impl Memory {
         }
 
         // io map is not ramdom
-        data[0xff40] = 0;
-        data[0xff41] = 0x84;
-        data[0xff42] = 0;
-        data[0xff43] = 0;
-        data[0xff44] = 0;
-        data[0xff45] = 0;
+        data[CONTROL_ADDR_RW] = 0;
+        data[STATUS_ADDR_RW] = 0x84;
+        data[SCROLL_Y_RW] = 0;
+        data[SCROLL_X_RW] = 0;
+        data[Y_COORDINATE_R] = 0;
+        data[LY_COMPARE_RW] = 0;
         data[0xff46] = 0xff;
         data[0xff47] = 0xfc;
         data[0xff48] = 0xff;
         data[0xff49] = 0xff;
-        data[0xff4a] = 0;
-        data[0xff4b] = 0;
+        data[WINDOW_Y_POSITION_RW] = 0;
+        data[WINDOW_X_POSITION_MINUS_7_RW] = 0;
 
         Memory {
             data,

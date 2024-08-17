@@ -1,5 +1,7 @@
+pub mod constants;
 pub mod cpu;
 pub mod memory;
+pub mod ppu;
 use std::fs;
 
 pub struct Core {
