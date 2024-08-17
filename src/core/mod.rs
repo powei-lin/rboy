@@ -22,8 +22,12 @@ impl Core {
         let game_rom = fs::read(game_rom_path).expect("game rom path");
         self.mem.game_rom = game_rom;
     }
-    pub fn tick(&mut self) {
-        self.cpu.tick(&mut self.mem);
+    pub fn tick(&mut self) -> bool {
+        let cpu_cycle_in_4mhz = self.cpu.tick(&mut self.mem);
+        self.ppu.tick(&mut self.mem, cpu_cycle_in_4mhz)
     }
-    pub fn get_new_frame_buffer() {}
+    pub fn get_new_frame_buffer(&self) {}
+    pub fn get_bg_frame_buffer(&self) -> &Vec<u8> {
+        self.ppu.bg_frame_buffer()
+    }
 }

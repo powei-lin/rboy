@@ -32,27 +32,32 @@ async fn main() {
     let mut i = 0;
     let mut count = 0;
     loop {
-        gameboy_core.tick();
         println!(
             "----------------------------------\n{} {}",
             count, gameboy_core.cpu
         );
         count += 1;
-        clear_background(LIGHTGRAY);
+        if gameboy_core.tick() {
+            clear_background(LIGHTGRAY);
+            loop {
+                screen.draw_frame();
+                screen.draw_bg_frame(gameboy_core.get_bg_frame_buffer());
+                draw_text(
+                    format!("FPS: {:.2}", 1.0 / get_frame_time()).as_str(),
+                    0.,
+                    16.,
+                    32.,
+                    WHITE,
+                );
 
-        let r = i / core::constants::LCD_WIDTH;
-        let c = i % core::constants::LCD_WIDTH;
-        screen.update_pixel_in_buffer(c, r, 0);
-        screen.draw_frame();
-        i = (i + 1) % graphic::GAMEBOY_WINDOW_PIXELS;
-        draw_text(
-            format!("FPS: {:.2}", 1.0 / get_frame_time()).as_str(),
-            0.,
-            16.,
-            32.,
-            WHITE,
-        );
+                next_frame().await;
+            }
+        }
 
-        next_frame().await;
+        // let r = i / core::constants::LCD_WIDTH;
+        // let c = i % core::constants::LCD_WIDTH;
+        // screen.update_pixel_in_buffer(c, r, 0);
+        // screen.draw_frame();
+        // i = (i + 1) % graphic::GAMEBOY_WINDOW_PIXELS;
     }
 }

@@ -1,3 +1,5 @@
+use std::ptr::addr_eq;
+
 use crate::core::constants::*;
 use rand::{self, RngCore};
 
@@ -16,7 +18,7 @@ impl Memory {
     pub fn new(randomize: bool) -> Memory {
         let mut data = [0; RAM_SIZE];
         if randomize {
-            rand::thread_rng().fill_bytes(&mut data);
+            rand::thread_rng().fill_bytes(&mut data[VRAM_START..IO_START]);
         }
 
         // io map is not ramdom
@@ -61,5 +63,15 @@ impl Memory {
     }
     pub fn set(&mut self, addr: u16, val: u8) {
         self.data[addr as usize] = val;
+    }
+    pub fn get_bit(&self, addr: u16, bit: u8) -> bool {
+        (self.get(addr) & (1 << bit)) != 0
+    }
+    pub fn set_bit(&mut self, addr: u16, bit: u8, one: bool) {
+        if one {
+            self.data[addr as usize] = self.data[addr as usize] | (1 << bit);
+        } else {
+            self.data[addr as usize] = self.data[addr as usize] & (0xff ^ (1 << bit));
+        }
     }
 }

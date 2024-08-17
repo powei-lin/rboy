@@ -1,7 +1,7 @@
 use crate::core::constants::*;
 use macroquad::math::vec2;
 use macroquad::miniquad::window::set_window_size;
-use macroquad::prelude::{draw_texture, WHITE};
+use macroquad::prelude::WHITE;
 use macroquad::texture::{draw_texture_ex, DrawTextureParams, Texture2D};
 
 pub const GAMEBOY_WINDOW_PIXELS: u32 = LCD_HEIGHT * LCD_WIDTH;
@@ -62,6 +62,23 @@ impl Screen {
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(window_width as f32, window_height as f32)),
+                ..Default::default()
+            },
+        );
+    }
+    pub fn draw_bg_frame(&self, bg_frame_buffer: &Vec<u8>) {
+        let texture =
+            Texture2D::from_rgba8(BG_SIZE as u16, BG_SIZE as u16, bg_frame_buffer.as_slice());
+        texture.set_filter(macroquad::texture::FilterMode::Nearest);
+        let scaled_bg_size = BG_SIZE as f32 * self.scale as f32;
+        let (window_width, window_height) = gameboy_window_size(self.scale);
+        draw_texture_ex(
+            &texture,
+            window_width as f32,
+            0.0,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(scaled_bg_size, scaled_bg_size)),
                 ..Default::default()
             },
         );

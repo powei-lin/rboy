@@ -444,10 +444,11 @@ impl CPU {
         (v1 << 8) + v0
     }
 
+    /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        match op_addr {
+        let cpu_cycle_in_16mhz = match op_addr {
             0xcb => {
                 let cb_op_addr: u8 = mem.get(self.get_pc_and_move());
                 println!("cb instruction {:02x}", cb_op_addr);
@@ -504,6 +505,7 @@ impl CPU {
             0xf0 => return ldh!(self, mem, A, "(a8)", 12),
             0xfe => return cp!(self, mem, "d8", 8),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
-        }
+        };
+        cpu_cycle_in_16mhz / 4
     }
 }
