@@ -40,7 +40,7 @@ async fn main() {
 
     let mut gameboy_core = rboy::core::Core::new(true);
     gameboy_core.load_game_rom(&cli.path);
-    let mut screen = graphic::Screen::new(cli.scale, cli.debug);
+    let screen = graphic::Screen::new(cli.scale, cli.debug);
 
     let mut i = 0;
     let mut count = 0;
@@ -68,11 +68,7 @@ async fn main() {
                     BLACK,
                 );
             }
-            // if now.elapsed() < one_sixtyth {
-            //     thread::sleep(one_sixtyth - now.elapsed());
-            // }
             next_frame().await;
-            // now = time::Instant::now();
         }
 
         // let r = i / core::constants::LCD_WIDTH;

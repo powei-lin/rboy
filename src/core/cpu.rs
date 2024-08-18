@@ -353,6 +353,11 @@ macro_rules! cp {
         cp_impl($self, t);
         $len
     }};
+    ($self:expr, $mem:ident, (HL), $len:expr) => {{
+        let t = $self.get_mem_hl($mem);
+        cp_impl($self, t);
+        $len
+    }};
 }
 
 impl CPU {
@@ -457,6 +462,10 @@ impl CPU {
         (v1 << 8) + v0
     }
 
+    fn get_mem_hl(&self, mem: &memory::Memory) -> u8 {
+        mem.get(((self.register_h as u16) << 8) + self.register_l as u16)
+    }
+
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
@@ -548,6 +557,7 @@ impl CPU {
             0x7a => return ld!(self, A, D, 4),
             0x7b => return ld!(self, A, E, 4),
             0x7c => return ld!(self, A, H, 4),
+            0x7d => return ld!(self, A, L, 4),
             0x90 => return sub!(self, B, 4),
             0x91 => return sub!(self, C, 4),
             0x92 => return sub!(self, D, 4),
@@ -555,6 +565,7 @@ impl CPU {
             0x94 => return sub!(self, H, 4),
             0x95 => return sub!(self, L, 4),
             0xaf => return xor!(self, A, 4),
+            0xbe => return cp!(self, mem, (HL), 8),
             0xc1 => return pop!(self, mem, BC, 12),
             0xc5 => return push!(self, mem, BC, 16),
             0xc9 => return ret(self, mem),
