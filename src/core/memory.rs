@@ -22,18 +22,18 @@ impl Memory {
         }
 
         // io map is not ramdom
-        data[LCD_CONTROL_RW] = 0;
-        data[STATUS_ADDR_RW] = 0x84;
-        data[SCROLL_Y_RW] = 0;
-        data[SCROLL_X_RW] = 0;
-        data[Y_COORDINATE_R] = 0;
-        data[LY_COMPARE_RW] = 0;
+        data[LCD_CONTROL_RW as usize] = 0;
+        data[STATUS_ADDR_RW as usize] = 0x84;
+        data[SCROLL_Y_RW as usize] = 0;
+        data[SCROLL_X_RW as usize] = 0;
+        data[Y_COORDINATE_R as usize] = 0;
+        data[LY_COMPARE_RW as usize] = 0;
         data[0xff46] = 0xff;
-        data[0xff47] = 0xfc;
+        data[BG_PALETTE_DATA as usize] = 0xfc;
         data[0xff48] = 0xff;
         data[0xff49] = 0xff;
-        data[WINDOW_Y_POSITION_RW] = 0;
-        data[WINDOW_X_POSITION_MINUS_7_RW] = 0;
+        data[WINDOW_Y_POSITION_RW as usize] = 0;
+        data[WINDOW_X_POSITION_MINUS_7_RW as usize] = 0;
         data[DISABLE_BOOT_ROM] = 0;
 
         Memory {

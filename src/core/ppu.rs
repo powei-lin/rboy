@@ -72,7 +72,7 @@ impl PPU {
         let frame_buffer =
             Vec::from_iter(std::iter::repeat(255).take((LCD_HEIGHT * LCD_WIDTH * 4) as usize));
         let bg_frame_buffer =
-            Vec::from_iter(std::iter::repeat(155).take((BG_SIZE * BG_SIZE * 4) as usize));
+            Vec::from_iter(std::iter::repeat(255).take((BG_SIZE * BG_SIZE * 4) as usize));
         PPU {
             lcd_ppu_enable: false,
             window_tile_map_area: false,
@@ -105,7 +105,6 @@ impl PPU {
         }
     }
     fn draw_bg_frame(&mut self, mem: &memory::Memory) {
-        // let mut start_y = 0;
         for (i, addr) in self.bg_tile_map_range().enumerate() {
             let tile_idx = mem.get(addr);
             let tile_data_addr = tile_idx as u16 * 16 + self.bg_tile_data_start_addr();
@@ -124,46 +123,47 @@ impl PPU {
                 }
             }
         }
-        //     for i in range(0x9800, 0x9c00):
-        //     tile_idx = mem.get(i)
-        //     tile_data_addr = tile_idx * 16 + 0x8000
-        //     img = data_to_tile([mem.get(tile_data_addr + j) for j in range(16)], mem.get(0xff47))
-        //     img = integer_resize(img, resize_scale, with_outline=True)
-        //     tmp.append(img)
-        //     if len(tmp) == 32:
-        //         combined = np.hstack(tmp)
-        //         if bg is not None:
-        //             bg = np.vstack((bg, combined))
-        //         else:
-        //             bg = combined
-        //         tmp = []
-        // bg = cv2.cvtColor(bg, cv2.COLOR_GRAY2BGR)
-        // scy = mem.get(0xff42)
-        // scx = mem.get(0xff43)
-        // tl = (scx * resize_scale, scy * resize_scale)
-        // tr = ((scx + LCD_WIDTH) * resize_scale, scy * resize_scale)
-        // bl = (scx * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
-        // br = ((scx + LCD_WIDTH) * resize_scale, (scy + LCD_HEIGHT) * resize_scale)
-        // cv2.line(bg, tl, tr, (0, 0, 255), thickness=resize_scale // 2 + 1)
-        // cv2.line(bg, tl, bl, (0, 0, 255), thickness=resize_scale // 2 + 1)
-        // cv2.line(bg, bl, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
-        // cv2.line(bg, tr, br, (0, 0, 255), thickness=resize_scale // 2 + 1)
-        // cv2.imshow("background map", bg)
-        // # cv2.waitKey(1)
+    }
+    fn draw_view_port(&mut self, mem: &memory::Memory) {
+        let scy = mem.get(SCROLL_Y_RW);
+        let scx = mem.get(SCROLL_X_RW);
+        let bg_usize = BG_SIZE as usize;
+        for c in (scx as usize)..(scx as usize + LCD_WIDTH as usize) {
+            let c = c % bg_usize;
+            let idx = ((scy as usize) * bg_usize + c) * 4;
+            self.bg_frame_buffer[idx] = 255;
+            self.bg_frame_buffer[idx + 1] = 0;
+            self.bg_frame_buffer[idx + 2] = 0;
+            let idx = (((scy as usize + LCD_HEIGHT as usize - 1) % bg_usize) * bg_usize + c) * 4;
+            self.bg_frame_buffer[idx] = 255;
+            self.bg_frame_buffer[idx + 1] = 0;
+            self.bg_frame_buffer[idx + 2] = 0;
+        }
+        for r in (scy as usize)..(scy as usize + LCD_HEIGHT as usize) {
+            let r = r % bg_usize;
+            let idx = (r * bg_usize + scx as usize) * 4;
+            self.bg_frame_buffer[idx] = 255;
+            self.bg_frame_buffer[idx + 1] = 0;
+            self.bg_frame_buffer[idx + 2] = 0;
+            let idx = (r * bg_usize + ((scx as usize) + LCD_WIDTH as usize - 1) % bg_usize) * 4;
+            self.bg_frame_buffer[idx] = 255;
+            self.bg_frame_buffer[idx + 1] = 0;
+            self.bg_frame_buffer[idx + 2] = 0;
+        }
     }
     pub fn bg_frame_buffer(&self) -> &Vec<u8> {
         &self.bg_frame_buffer
     }
 
     fn check_lcdc(&mut self, mem: &memory::Memory) {
-        self.lcd_ppu_enable = mem.get_bit(LCD_CONTROL_RW as u16, 7);
-        self.window_tile_map_area = mem.get_bit(LCD_CONTROL_RW as u16, 6);
-        self.window_enable = mem.get_bit(LCD_CONTROL_RW as u16, 5);
-        self.bg_and_window_tile_data_area = mem.get_bit(LCD_CONTROL_RW as u16, 4);
-        self.bg_tile_map_area = mem.get_bit(LCD_CONTROL_RW as u16, 3);
-        self.obj_size = mem.get_bit(LCD_CONTROL_RW as u16, 2);
-        self.obj_enable = mem.get_bit(LCD_CONTROL_RW as u16, 1);
-        self.bg_and_window_enable_priority = mem.get_bit(LCD_CONTROL_RW as u16, 0);
+        self.lcd_ppu_enable = mem.get_bit(LCD_CONTROL_RW, 7);
+        self.window_tile_map_area = mem.get_bit(LCD_CONTROL_RW, 6);
+        self.window_enable = mem.get_bit(LCD_CONTROL_RW, 5);
+        self.bg_and_window_tile_data_area = mem.get_bit(LCD_CONTROL_RW, 4);
+        self.bg_tile_map_area = mem.get_bit(LCD_CONTROL_RW, 3);
+        self.obj_size = mem.get_bit(LCD_CONTROL_RW, 2);
+        self.obj_enable = mem.get_bit(LCD_CONTROL_RW, 1);
+        self.bg_and_window_enable_priority = mem.get_bit(LCD_CONTROL_RW, 0);
     }
 
     fn check_all_registers(&mut self, mem: &memory::Memory) {
@@ -196,14 +196,15 @@ impl PPU {
             PPUState::HBLANK => {
                 if self.current_state_cycle >= DRAW_AND_HBLANK_CYCLE_IN_4MHZ {
                     self.current_state_cycle -= DRAW_AND_HBLANK_CYCLE_IN_4MHZ;
-                    let line_y = mem.get(Y_COORDINATE_R as u16);
+                    let line_y = mem.get(Y_COORDINATE_R);
                     if line_y < LCD_HEIGHT as u8 {
-                        mem.set(Y_COORDINATE_R as u16, line_y + 1);
+                        mem.set(Y_COORDINATE_R, line_y + 1);
                         self.current_state = PPUState::OAM;
                     } else {
                         self.current_state = PPUState::VBLANK;
                         // draw frame
                         self.draw_bg_frame(mem);
+                        self.draw_view_port(mem);
                         return true;
                     }
                 }
@@ -211,7 +212,7 @@ impl PPU {
             PPUState::VBLANK => {
                 if self.current_state_cycle >= VBLANK_CYCLE_IN_4MHZ {
                     self.current_state_cycle -= VBLANK_CYCLE_IN_4MHZ;
-                    if mem.get(Y_COORDINATE_R as u16) >= VBLANK_END_LY {
+                    if mem.get(Y_COORDINATE_R) >= VBLANK_END_LY {
                         self.current_state = PPUState::OAM;
                     }
                 }

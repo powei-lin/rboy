@@ -1,12 +1,12 @@
-pub const LCD_CONTROL_RW: usize = 0xff40;
-pub const STATUS_ADDR_RW: usize = 0xff41;
-pub const SCROLL_Y_RW: usize = 0xff42;
-pub const SCROLL_X_RW: usize = 0xff43;
-pub const Y_COORDINATE_R: usize = 0xff44;
-pub const LY_COMPARE_RW: usize = 0xff45;
-pub const BG_PALETTE_DATA: usize = 0xff47;
-pub const WINDOW_Y_POSITION_RW: usize = 0xff4a;
-pub const WINDOW_X_POSITION_MINUS_7_RW: usize = 0xff4b;
+pub const LCD_CONTROL_RW: u16 = 0xff40;
+pub const STATUS_ADDR_RW: u16 = 0xff41;
+pub const SCROLL_Y_RW: u16 = 0xff42;
+pub const SCROLL_X_RW: u16 = 0xff43;
+pub const Y_COORDINATE_R: u16 = 0xff44;
+pub const LY_COMPARE_RW: u16 = 0xff45;
+pub const BG_PALETTE_DATA: u16 = 0xff47;
+pub const WINDOW_Y_POSITION_RW: u16 = 0xff4a;
+pub const WINDOW_X_POSITION_MINUS_7_RW: u16 = 0xff4b;
 
 // io ranges
 pub const DISABLE_BOOT_ROM: usize = 0xff50;
