@@ -132,7 +132,7 @@ macro_rules! ld {
     }};
     ($self:expr, $mem:ident, "(a8)", $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
-            let addr = $self.get_mem_u8($mem) as u16 + 0xff00;
+            let addr = $self.get_mem_a8($mem);
             $mem.set(addr, v);
         }
         $len
@@ -142,11 +142,6 @@ macro_rules! ld {
             let addr = $self.get_mem_u16($mem);
             $mem.set(addr, v);
         }
-        $len
-    }};
-    ($self:expr, $mem:ident, $to_v:ident, "d8", $len:expr) => {{
-        let v = $self.get_mem_u8($mem);
-        $self.set_value(&RegisterValue::$to_v(v));
         $len
     }};
 }
@@ -437,6 +432,9 @@ impl CPU {
     fn get_mem_u8(&mut self, mem: &memory::Memory) -> u8 {
         mem.get(self.get_pc_and_move())
     }
+    fn get_mem_a8(&mut self, mem: &memory::Memory) -> u16 {
+        self.get_mem_u8(mem) as u16 + 0xff00
+    }
 
     fn get_mem_u16(&mut self, mem: &memory::Memory) -> u16 {
         let v0 = self.get_mem_u8(mem) as u16;
@@ -459,9 +457,10 @@ impl CPU {
                 }
             }
             0x01 => return ld!(self, mem, BC, get_mem_u16, 12),
+            0x03 => return inc!(self, BC, 8),
             0x04 => return inc!(self, B, 4),
             0x05 => return dec!(self, B, 4),
-            0x06 => return ld!(self, mem, B, "d8", 8),
+            0x06 => return ld!(self, mem, B, get_mem_u8, 8),
             0x0c => return inc!(self, C, 4),
             0x0d => return dec!(self, C, 4),
             0x0e => return ld!(self, mem, C, get_mem_u8, 8),
@@ -474,7 +473,7 @@ impl CPU {
             0x1a => return ld!(self, mem, A, (DE), 8),
             0x1c => return inc!(self, E, 4),
             0x1d => return dec!(self, E, 4),
-            0x1e => return ld!(self, mem, E, "d8", 8),
+            0x1e => return ld!(self, mem, E, get_mem_u8, 8),
             0x20 => return jr!(self, mem, "N", Z, 12, 8),
             0x21 => return ld!(self, mem, HL, get_mem_u16, 12),
             0x22 => return ld!(self, mem, "(HL)"+, A, 8),
@@ -484,14 +483,21 @@ impl CPU {
             0x28 => return jr!(self, mem, Z, 12, 8),
             0x2c => return inc!(self, L, 4),
             0x2d => return dec!(self, L, 4),
-            0x2e => return ld!(self, mem, L, "d8", 8),
+            0x2e => return ld!(self, mem, L, get_mem_u8, 8),
             0x30 => return jr!(self, mem, "N", C, 12, 8),
             0x31 => return ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => return ld!(self, mem, "(HL)"-, A, 8),
+            0x33 => return inc!(self, SP, 8),
             0x38 => return jr!(self, mem, C, 12, 8),
             0x3c => return inc!(self, A, 4),
             0x3d => return dec!(self, A, 4),
             0x3e => return ld!(self, mem, A, get_mem_u8, 8),
+            0x40 => return ld!(self, B, B, 4),
+            0x41 => return ld!(self, B, C, 4),
+            0x42 => return ld!(self, B, D, 4),
+            0x43 => return ld!(self, B, E, 4),
+            0x44 => return ld!(self, B, H, 4),
+            0x45 => return ld!(self, B, L, 4),
             0x47 => return ld!(self, B, A, 4),
             0x4a => return ld!(self, C, D, 4),
             0x4b => return ld!(self, C, E, 4),
@@ -505,6 +511,12 @@ impl CPU {
             0x54 => return ld!(self, D, H, 4),
             0x55 => return ld!(self, D, L, 4),
             0x57 => return ld!(self, D, A, 4),
+            0x60 => return ld!(self, H, B, 4),
+            0x61 => return ld!(self, H, C, 4),
+            0x62 => return ld!(self, H, D, 4),
+            0x63 => return ld!(self, H, E, 4),
+            0x64 => return ld!(self, H, H, 4),
+            0x65 => return ld!(self, H, L, 4),
             0x67 => return ld!(self, H, A, 4),
             0x68 => return ld!(self, L, B, 4),
             0x70 => return ld!(self, mem, (HL), B, 8),
