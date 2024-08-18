@@ -30,4 +30,7 @@ impl Core {
     pub fn get_bg_frame_buffer(&self) -> &Vec<u8> {
         self.ppu.bg_frame_buffer()
     }
+    pub fn get_tiles_frame_buffer(&self) -> &Vec<u8> {
+        self.ppu.tiles_frame_buffer()
+    }
 }

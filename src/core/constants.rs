@@ -15,6 +15,7 @@ pub const LCD_WIDTH: u32 = 160;
 pub const LCD_HEIGHT: u32 = 144;
 pub const BG_SIZE: u32 = 256;
 pub const GRAY_SHADES: [u8; 4] = [255, 170, 85, 0];
+pub const TILE_DATA_SIZE: usize = 16;
 
 // ram addr
 pub const VRAM_START: usize = 0x8000;

@@ -67,7 +67,7 @@ impl Screen {
         );
     }
     pub fn draw_bg_frame(&self, bg_frame_buffer: &Vec<u8>) {
-        let texture =
+        let texture: Texture2D =
             Texture2D::from_rgba8(BG_SIZE as u16, BG_SIZE as u16, bg_frame_buffer.as_slice());
         texture.set_filter(macroquad::texture::FilterMode::Nearest);
         let scaled_bg_size = BG_SIZE as f32 * self.scale as f32;
@@ -79,6 +79,29 @@ impl Screen {
             WHITE,
             DrawTextureParams {
                 dest_size: Some(vec2(scaled_bg_size, scaled_bg_size)),
+                ..Default::default()
+            },
+        );
+    }
+    pub fn draw_tiles_frame(&self, tiles_frame_buffer: &Vec<u8>) {
+        let texture: Texture2D = Texture2D::from_rgba8(
+            LCD_WIDTH as u16,
+            BG_SIZE as u16 - LCD_HEIGHT as u16,
+            tiles_frame_buffer.as_slice(),
+        );
+        texture.set_filter(macroquad::texture::FilterMode::Nearest);
+        let scaled_bg_size = BG_SIZE as f32 * self.scale as f32;
+        let (window_width, window_height) = gameboy_window_size(self.scale);
+        draw_texture_ex(
+            &texture,
+            0.0,
+            window_height as f32,
+            WHITE,
+            DrawTextureParams {
+                dest_size: Some(vec2(
+                    window_width as f32,
+                    scaled_bg_size as f32 - window_height as f32,
+                )),
                 ..Default::default()
             },
         );

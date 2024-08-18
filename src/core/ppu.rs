@@ -45,6 +45,7 @@ pub struct PPU {
     bg_and_window_enable_priority: bool,
     frame_buffer: Vec<u8>,
     bg_frame_buffer: Vec<u8>,
+    tiles_frame_buffer: Vec<u8>,
     remained_cycle: u8,
     current_state: PPUState,
     current_state_cycle: u16,
@@ -59,8 +60,8 @@ fn calculate_tile(data: &[u8], palette: u8) -> [u8; 64] {
             let shift = 7 - c;
             let upper_bit = (data[idx] >> shift) & 1;
             let lower_bit = (data[idx + 1] >> shift) & 1;
-            let color_idx = ((upper_bit << 1) + lower_bit) as usize;
-            let color = colors[color_idx];
+            let color_id = ((upper_bit << 1) + lower_bit) as usize;
+            let color = colors[color_id];
             tile_data[y * 8 + c] = GRAY_SHADES[color as usize];
         }
     }
@@ -73,6 +74,9 @@ impl PPU {
             Vec::from_iter(std::iter::repeat(255).take((LCD_HEIGHT * LCD_WIDTH * 4) as usize));
         let bg_frame_buffer =
             Vec::from_iter(std::iter::repeat(255).take((BG_SIZE * BG_SIZE * 4) as usize));
+        let tiles_frame_buffer = Vec::from_iter(
+            std::iter::repeat(255).take(((BG_SIZE - LCD_HEIGHT) * LCD_WIDTH * 4) as usize),
+        );
         PPU {
             lcd_ppu_enable: false,
             window_tile_map_area: false,
@@ -84,6 +88,7 @@ impl PPU {
             bg_and_window_enable_priority: false,
             frame_buffer,
             bg_frame_buffer,
+            tiles_frame_buffer,
             remained_cycle: 0,
             current_state: PPUState::OAM,
             current_state_cycle: 0,
@@ -107,10 +112,11 @@ impl PPU {
     fn draw_bg_frame(&mut self, mem: &memory::Memory) {
         for (i, addr) in self.bg_tile_map_range().enumerate() {
             let tile_idx = mem.get(addr);
-            let tile_data_addr = tile_idx as u16 * 16 + self.bg_tile_data_start_addr();
+            let tile_data_addr =
+                tile_idx as u16 * TILE_DATA_SIZE as u16 + self.bg_tile_data_start_addr();
             let palette = mem.get(BG_PALETTE_DATA as u16);
 
-            let tile_data = calculate_tile(mem.get_chunck(tile_data_addr, 16), palette);
+            let tile_data = calculate_tile(mem.get_chunck(tile_data_addr, TILE_DATA_SIZE), palette);
 
             for y in 0..8 {
                 let row = (i / 32) * 8 + y;
@@ -119,6 +125,26 @@ impl PPU {
                     let bg_frame_buffer_idx = (row * BG_SIZE as usize + col) * 4;
                     for j in 0..3 {
                         self.bg_frame_buffer[bg_frame_buffer_idx + j] = tile_data[y * 8 + x];
+                    }
+                }
+            }
+        }
+    }
+    fn draw_tiles_frame(&mut self, mem: &memory::Memory) {
+        let tile_nums = ((BG_SIZE - LCD_HEIGHT) / 8 * LCD_WIDTH / 8) as usize;
+        let palette = mem.get(BG_PALETTE_DATA as u16);
+        for (i, tile_data_start) in (VRAM_START..VRAM_START + tile_nums * TILE_DATA_SIZE)
+            .step_by(TILE_DATA_SIZE)
+            .enumerate()
+        {
+            let tile_data = calculate_tile(mem.get_chunck(tile_data_start as u16, 16), palette);
+            for y in 0..8 {
+                let row = (i / 20) * 8 + y;
+                for x in 0..8 {
+                    let col = (i % 20) * 8 + x;
+                    let tile_frame_buffer_idx = (row * LCD_WIDTH as usize + col) * 4;
+                    for j in 0..3 {
+                        self.tiles_frame_buffer[tile_frame_buffer_idx + j] = tile_data[y * 8 + x];
                     }
                 }
             }
@@ -153,6 +179,9 @@ impl PPU {
     }
     pub fn bg_frame_buffer(&self) -> &Vec<u8> {
         &self.bg_frame_buffer
+    }
+    pub fn tiles_frame_buffer(&self) -> &Vec<u8> {
+        &self.tiles_frame_buffer
     }
 
     fn check_lcdc(&mut self, mem: &memory::Memory) {
@@ -205,6 +234,7 @@ impl PPU {
                         // draw frame
                         self.draw_bg_frame(mem);
                         self.draw_view_port(mem);
+                        self.draw_tiles_frame(mem);
                         return true;
                     }
                 }

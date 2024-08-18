@@ -59,6 +59,7 @@ async fn main() {
 
             screen.draw_frame();
             screen.draw_bg_frame(gameboy_core.get_bg_frame_buffer());
+            screen.draw_tiles_frame(gameboy_core.get_tiles_frame_buffer());
             if cli.debug {
                 draw_text(
                     format!("FPS: {:.2}", 1.0 / get_frame_time()).as_str(),
