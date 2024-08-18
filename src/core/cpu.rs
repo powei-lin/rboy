@@ -221,6 +221,21 @@ macro_rules! xor {
         $len
     }};
 }
+macro_rules! sub {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let z = ($self.register_a == v);
+            let h = ($self.register_a & 0xf) < (v & 0xf);
+            let c = $self.register_a < v;
+            $self.register_a -= v;
+            $self.set_flag(&Flag::Z(z));
+            $self.set_flag(&Flag::N(true));
+            $self.set_flag(&Flag::H(h));
+            $self.set_flag(&Flag::C(c));
+        }
+        $len
+    }};
+}
 macro_rules! bit {
     ($self:expr, $reg:ident, $shift:expr, $len:expr) => {{
         let v = ($self.$reg) & (1 << $shift);
@@ -445,11 +460,11 @@ impl CPU {
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
-        println!("instruction {:02x}", op_addr);
+        // println!("instruction {:02x}", op_addr);
         let cpu_cycle_in_16mhz = match op_addr {
             0xcb => {
                 let cb_op_addr: u8 = mem.get(self.get_pc_and_move());
-                println!("cb instruction {:02x}", cb_op_addr);
+                // println!("cb instruction {:02x}", cb_op_addr);
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
                     0x7c => return bit!(self, register_h, 7, 8),
@@ -468,6 +483,7 @@ impl CPU {
             0x13 => return inc!(self, DE, 8),
             0x14 => return inc!(self, D, 4),
             0x15 => return dec!(self, D, 4),
+            0x16 => return ld!(self, mem, D, get_mem_u8, 8),
             0x17 => return rla(self, 4),
             0x18 => return jr!(self, mem, 12),
             0x1a => return ld!(self, mem, A, (DE), 8),
@@ -480,6 +496,7 @@ impl CPU {
             0x23 => return inc!(self, HL, 8),
             0x24 => return inc!(self, H, 4),
             0x25 => return dec!(self, H, 4),
+            0x26 => return ld!(self, mem, H, get_mem_u8, 8),
             0x28 => return jr!(self, mem, Z, 12, 8),
             0x2c => return inc!(self, L, 4),
             0x2d => return dec!(self, L, 4),
@@ -531,6 +548,12 @@ impl CPU {
             0x7a => return ld!(self, A, D, 4),
             0x7b => return ld!(self, A, E, 4),
             0x7c => return ld!(self, A, H, 4),
+            0x90 => return sub!(self, B, 4),
+            0x91 => return sub!(self, C, 4),
+            0x92 => return sub!(self, D, 4),
+            0x93 => return sub!(self, E, 4),
+            0x94 => return sub!(self, H, 4),
+            0x95 => return sub!(self, L, 4),
             0xaf => return xor!(self, A, 4),
             0xc1 => return pop!(self, mem, BC, 12),
             0xc5 => return push!(self, mem, BC, 16),

@@ -212,8 +212,10 @@ impl PPU {
             PPUState::VBLANK => {
                 if self.current_state_cycle >= VBLANK_CYCLE_IN_4MHZ {
                     self.current_state_cycle -= VBLANK_CYCLE_IN_4MHZ;
+                    mem.set(Y_COORDINATE_R, mem.get(Y_COORDINATE_R) + 1);
                     if mem.get(Y_COORDINATE_R) >= VBLANK_END_LY {
                         self.current_state = PPUState::OAM;
+                        mem.set(Y_COORDINATE_R, 0);
                     }
                 }
             }
