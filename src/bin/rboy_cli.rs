@@ -39,19 +39,19 @@ async fn main() {
         count += 1;
         if gameboy_core.tick() {
             clear_background(LIGHTGRAY);
-            loop {
-                screen.draw_frame();
-                screen.draw_bg_frame(gameboy_core.get_bg_frame_buffer());
-                draw_text(
-                    format!("FPS: {:.2}", 1.0 / get_frame_time()).as_str(),
-                    0.,
-                    16.,
-                    32.,
-                    BLACK,
-                );
+            // loop {
+            screen.draw_frame();
+            screen.draw_bg_frame(gameboy_core.get_bg_frame_buffer());
+            draw_text(
+                format!("FPS: {:.2}", 1.0 / get_frame_time()).as_str(),
+                0.,
+                16.,
+                32.,
+                BLACK,
+            );
 
-                next_frame().await;
-            }
+            next_frame().await;
+            // }
         }
 
         // let r = i / core::constants::LCD_WIDTH;
