@@ -26,6 +26,20 @@ struct PixelFetcher {
     state: FetcherState,
 }
 
+struct OAM {
+    y: u8,
+    x: u8,
+    tile_idx: u8,
+    /// 0 = No, 1 = BG and Window colors 1–3 are drawn over this OBJ
+    priority: bool,
+    /// 0 = Normal, 1 = Entire OBJ is vertically mirrored
+    y_flip: bool,
+    /// 0 = Normal, 1 = Entire OBJ is horizontally mirrored
+    x_flip: bool,
+    /// [Non CGB Mode only]: 0 = OBP0, 1 = OBP1
+    dmg_palette: bool,
+}
+
 pub struct PPU {
     lcd_ppu_enable: bool,
 
@@ -208,6 +222,7 @@ impl PPU {
         }
         self.remained_cycle += cpu_cycle_in_4mhz;
         self.current_state_cycle += cpu_cycle_in_4mhz as u16;
+        let line_y = mem.get(Y_COORDINATE_R);
         match self.current_state {
             PPUState::OAM => {
                 if self.current_state_cycle >= OAM_CYCLE_IN_4MHZ {
@@ -225,9 +240,8 @@ impl PPU {
             PPUState::HBLANK => {
                 if self.current_state_cycle >= DRAW_AND_HBLANK_CYCLE_IN_4MHZ {
                     self.current_state_cycle -= DRAW_AND_HBLANK_CYCLE_IN_4MHZ;
-                    let line_y = mem.get(Y_COORDINATE_R);
-                    if line_y < LCD_HEIGHT as u8 {
-                        mem.set(Y_COORDINATE_R, line_y + 1);
+                    mem.set(Y_COORDINATE_R, line_y + 1);
+                    if line_y + 1 < LCD_HEIGHT as u8 {
                         self.current_state = PPUState::OAM;
                     } else {
                         self.current_state = PPUState::VBLANK;
@@ -242,8 +256,8 @@ impl PPU {
             PPUState::VBLANK => {
                 if self.current_state_cycle >= VBLANK_CYCLE_IN_4MHZ {
                     self.current_state_cycle -= VBLANK_CYCLE_IN_4MHZ;
-                    mem.set(Y_COORDINATE_R, mem.get(Y_COORDINATE_R) + 1);
-                    if mem.get(Y_COORDINATE_R) >= VBLANK_END_LY {
+                    mem.set(Y_COORDINATE_R, line_y + 1);
+                    if line_y + 1 >= VBLANK_END_LY {
                         self.current_state = PPUState::OAM;
                         mem.set(Y_COORDINATE_R, 0);
                     }

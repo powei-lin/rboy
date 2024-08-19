@@ -20,7 +20,6 @@ pub struct Screen {
     scale: u8,
     frame_buffer: Vec<u8>,
     debug: bool,
-    bg_frame_buffer: Vec<u8>,
 }
 impl Screen {
     pub fn new(scale: u8, debug: bool) -> Screen {
@@ -38,7 +37,6 @@ impl Screen {
             scale,
             frame_buffer,
             debug,
-            bg_frame_buffer,
         }
     }
     pub fn update_pixel_in_buffer(&mut self, x: u32, y: u32, val: u8) {
@@ -71,7 +69,7 @@ impl Screen {
             Texture2D::from_rgba8(BG_SIZE as u16, BG_SIZE as u16, bg_frame_buffer.as_slice());
         texture.set_filter(macroquad::texture::FilterMode::Nearest);
         let scaled_bg_size = BG_SIZE as f32 * self.scale as f32;
-        let (window_width, window_height) = gameboy_window_size(self.scale);
+        let (window_width, _window_height) = gameboy_window_size(self.scale);
         draw_texture_ex(
             &texture,
             window_width as f32,

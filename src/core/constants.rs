@@ -22,6 +22,7 @@ pub const VRAM_START: usize = 0x8000;
 pub const EXTERNAL_RAM_START: usize = 0xa000;
 pub const RAM_START: usize = 0xc000;
 pub const OAM_RAM_START: usize = 0xfe00;
+pub const OAM_RAM_SIZE: usize = 0xa0;
 pub const IO_START: usize = 0xff00;
 pub const HRAM_START: usize = 0xff80;
 
