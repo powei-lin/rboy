@@ -40,6 +40,7 @@ struct OAM {
     dmg_palette: bool,
 }
 
+/// PIXEL PROCESS UNIT
 pub struct PPU {
     lcd_ppu_enable: bool,
 
