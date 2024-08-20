@@ -229,12 +229,15 @@ impl PPU {
                     // panic!("start DRAWING");
                     self.current_state = PPUState::DRAWING;
                     self.current_state_cycle -= OAM_CYCLE_IN_4MHZ;
+                    mem.vram_accessible = false;
                 }
             }
             PPUState::DRAWING => {
                 if self.current_state_cycle >= MAX_DRAWING_CYCLE_IN_4MHZ {
                     // panic!("start HB");
                     self.current_state = PPUState::HBLANK;
+                    mem.vram_accessible = true;
+                    mem.oam_accessible = true;
                 }
             }
             PPUState::HBLANK => {
@@ -243,8 +246,11 @@ impl PPU {
                     mem.set(Y_COORDINATE_R, line_y + 1);
                     if line_y + 1 < LCD_HEIGHT as u8 {
                         self.current_state = PPUState::OAM;
+                        mem.oam_accessible = false;
                     } else {
                         self.current_state = PPUState::VBLANK;
+                        mem.vram_accessible = true;
+                        mem.oam_accessible = true;
                         // draw frame
                         self.draw_bg_frame(mem);
                         self.draw_view_port(mem);
@@ -259,6 +265,7 @@ impl PPU {
                     mem.set(Y_COORDINATE_R, line_y + 1);
                     if line_y + 1 >= VBLANK_END_LY {
                         self.current_state = PPUState::OAM;
+                        mem.oam_accessible = false;
                         mem.set(Y_COORDINATE_R, 0);
                     }
                 }

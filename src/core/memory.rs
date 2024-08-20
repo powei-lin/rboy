@@ -1,5 +1,3 @@
-use std::ptr::addr_eq;
-
 use crate::core::constants::*;
 use rand::{self, RngCore};
 
@@ -10,8 +8,8 @@ pub struct Memory {
     data: [u8; RAM_SIZE],
     pub game_rom: Vec<u8>,
     // VRAM and OAM access
-    vram_accessible: bool,
-    oam_accessible: bool,
+    pub vram_accessible: bool,
+    pub oam_accessible: bool,
 }
 
 impl Memory {
@@ -45,17 +43,23 @@ impl Memory {
     }
     pub fn get(&self, addr: u16) -> u8 {
         if self.data[DISABLE_BOOT_ROM] > 0 || addr > 0xff {
-            if addr < 0x8000 {
-                self.game_rom[addr as usize]
-            } else if addr < 0xa000 {
-                // VRAM
-                if self.vram_accessible {
-                    self.data[addr as usize]
-                } else {
-                    0xff
+            match addr {
+                0..0x8000 => self.game_rom[addr as usize],
+                0x8000..0xa000 => {
+                    if self.vram_accessible {
+                        self.data[addr as usize]
+                    } else {
+                        0xff
+                    }
                 }
-            } else {
-                self.data[addr as usize]
+                0xfe00..0xfea0 => {
+                    if self.oam_accessible {
+                        self.data[addr as usize]
+                    } else {
+                        0xff
+                    }
+                }
+                _ => self.data[addr as usize],
             }
         } else {
             BOOT_ROM_BYTES[addr as usize]
