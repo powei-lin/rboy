@@ -41,6 +41,7 @@ pub struct CPU {
     pub register_l: u8,
     pub register_sp: u16,
     pub register_pc: u16,
+    interrupt_master_enable_flag: bool,
 }
 
 macro_rules! set_register_value {
@@ -362,6 +363,14 @@ macro_rules! jr {
     }};
 }
 
+macro_rules! jp {
+    ($self:expr, $mem:ident, "a16", $len:expr) => {{
+        let addr = $self.get_mem_u16($mem);
+        $self.register_pc = addr;
+        $len
+    }};
+}
+
 fn rla(cpu: &mut CPU, len: u8) -> u8 {
     let c = cpu.register_a >= 128;
     let mut v = cpu.register_a << 1;
@@ -429,6 +438,7 @@ impl CPU {
             register_l: 0,
             register_sp: 0,
             register_pc: 0,
+            interrupt_master_enable_flag: false,
         }
     }
     pub fn set_flag(&mut self, flag: &Flag) {
@@ -536,10 +546,7 @@ impl CPU {
                     _ => todo!("cb opcode 0x{:02X} \n{}", cb_op_addr, self),
                 }
             }
-            0x00 => {
-                // self.register_pc += 1;
-                4
-            }
+            0x00 => 4,
             0x01 => ld!(self, mem, BC, get_mem_u16, 12),
             0x03 => inc!(self, BC, 8),
             0x04 => inc!(self, B, 4),
@@ -629,6 +636,7 @@ impl CPU {
             0xaf => xor!(self, A, 4),
             0xbe => cp!(self, mem, (HL), 8),
             0xc1 => pop!(self, mem, BC, 12),
+            0xc3 => jp!(self, mem, "a16", 16),
             0xc5 => push!(self, mem, BC, 16),
             0xc9 => ret(self, mem),
             0xcc => call!(self, mem, Z, "a16", 24, 12),
@@ -639,6 +647,10 @@ impl CPU {
             0xe2 => ld!(self, mem, ff(C), A, 8),
             0xea => ld!(self, mem, "(a16)", A, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
+            0xf3 => {
+                self.interrupt_master_enable_flag = false;
+                4
+            }
             0xfe => cp!(self, mem, "d8", 8),
             // 0xff => rst!(self, mem, 0x38, 16),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
