@@ -294,6 +294,20 @@ macro_rules! call {
         $self.register_pc = v;
         $len
     }};
+    ($self:expr, $mem:ident, $flag:ident, "a16", $len0:expr, $len1:expr) => {{
+        let v = $self.get_mem_u16($mem);
+        let c = check_condition!($self, $flag);
+        if c {
+            $self.register_sp -= 1;
+            $mem.set($self.register_sp, ($self.register_pc >> 8) as u8);
+            $self.register_sp -= 1;
+            $mem.set($self.register_sp, ($self.register_pc & 0xff) as u8);
+            $self.register_pc = v;
+            $len0
+        } else {
+            $len1
+        }
+    }};
 }
 
 macro_rules! rl {
@@ -605,6 +619,7 @@ impl CPU {
             0xc1 => pop!(self, mem, BC, 12),
             0xc5 => push!(self, mem, BC, 16),
             0xc9 => ret(self, mem),
+            0xcc => call!(self, mem, Z, "a16", 24, 12),
             0xcd => call!(self, mem, "a16", 24),
             0xd1 => pop!(self, mem, DE, 12),
             0xe0 => ld!(self, mem, "(a8)", A, 12),
