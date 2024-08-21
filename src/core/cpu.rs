@@ -28,6 +28,8 @@ pub enum Flag {
     H(bool),
     C(bool),
 }
+
+#[derive(PartialEq, Clone)]
 pub struct CPU {
     pub register_a: u8,
     pub register_f: u8,
@@ -404,6 +406,16 @@ macro_rules! cp {
     }};
 }
 
+macro_rules! rst {
+    ($self:expr, $mem:ident, $num:expr, $len:expr) => {{
+        $mem.set($self.register_sp - 1, ($self.register_pc >> 8) as u8);
+        $mem.set($self.register_sp - 2, ($self.register_pc & 0xff) as u8);
+        $self.register_sp -= 2;
+        $self.register_pc = $num;
+        $len
+    }};
+}
+
 impl CPU {
     pub fn new() -> CPU {
         CPU {
@@ -513,11 +525,11 @@ impl CPU {
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
-        // println!("instruction {:02x}", op_addr);
+        println!("instruction {:02x}", op_addr);
         let cpu_cycle_in_16mhz = match op_addr {
             0xcb => {
                 let cb_op_addr: u8 = mem.get(self.get_pc_and_move());
-                // println!("cb instruction {:02x}", cb_op_addr);
+                println!("cb instruction {:02x}", cb_op_addr);
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
                     0x7c => return bit!(self, register_h, 7, 8),
@@ -525,7 +537,7 @@ impl CPU {
                 }
             }
             0x00 => {
-                self.register_pc += 1;
+                // self.register_pc += 1;
                 4
             }
             0x01 => ld!(self, mem, BC, get_mem_u16, 12),
@@ -628,6 +640,7 @@ impl CPU {
             0xea => ld!(self, mem, "(a16)", A, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
             0xfe => cp!(self, mem, "d8", 8),
+            // 0xff => rst!(self, mem, 0x38, 16),
             _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
         };
         cpu_cycle_in_16mhz / 4

@@ -4,6 +4,8 @@ pub mod memory;
 pub mod ppu;
 use std::fs;
 
+use constants::DISABLE_BOOT_ROM;
+
 pub struct Core {
     pub cpu: cpu::CPU,
     mem: memory::Memory,
@@ -23,7 +25,17 @@ impl Core {
         self.mem.game_rom = game_rom;
     }
     pub fn tick(&mut self) -> bool {
+        // println!("cpu start");
+        // let cpu_before_tick = self.cpu.clone();
         let cpu_cycle_in_4mhz = self.cpu.tick(&mut self.mem);
+        if self.mem.get(DISABLE_BOOT_ROM as u16) > 0 {
+            println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            // panic!();
+        }
+        // if cpu_before_tick == self.cpu{
+        //     panic!("cpu is not changing. {}", self.cpu);
+        // }
+        // println!("cpu end");
         self.ppu.tick(&mut self.mem, cpu_cycle_in_4mhz)
     }
     pub fn get_new_frame_buffer(&self) {}

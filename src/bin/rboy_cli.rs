@@ -71,6 +71,7 @@ async fn main() {
             }
             next_frame().await;
         }
+        // println!("count {}", count);
 
         // let r = i / core::constants::LCD_WIDTH;
         // let c = i % core::constants::LCD_WIDTH;
