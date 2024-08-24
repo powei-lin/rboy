@@ -545,7 +545,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0x026f;
+        let break_point = self.register_pc - 1 == 0xf26f;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
