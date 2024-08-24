@@ -28,6 +28,9 @@ impl Core {
         // println!("cpu start");
         // let cpu_before_tick = self.cpu.clone();
         let cpu_cycle_in_4mhz = self.cpu.tick(&mut self.mem);
+        if cpu_cycle_in_4mhz == 0 {
+            return true;
+        }
         if self.mem.get(DISABLE_BOOT_ROM as u16) > 0 {
             println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
             // panic!();

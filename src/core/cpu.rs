@@ -95,6 +95,11 @@ macro_rules! ld {
         $self.set_value(&RegisterValue::$variant(v));
         $len
     }};
+    ($self:expr, $mem:ident, "(HL)", $get_mem:ident, $len:expr) => {{
+        let v = $self.$get_mem($mem);
+        $self.set_mem_hl($mem, v);
+        $len
+    }};
     ($self:expr, $to_v:ident, $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
             $self.set_value(&RegisterValue::$to_v(v));
@@ -215,7 +220,8 @@ macro_rules! inc {
 macro_rules! xor {
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
-            let z = ($self.register_a ^ v) == 0;
+            $self.register_a ^= v;
+            let z = $self.register_a == 0;
             $self.set_flag(&Flag::Z(z));
             $self.set_flag(&Flag::N(false));
             $self.set_flag(&Flag::H(false));
@@ -531,11 +537,20 @@ impl CPU {
     fn get_mem_hl(&self, mem: &memory::Memory) -> u8 {
         mem.get(((self.register_h as u16) << 8) + self.register_l as u16)
     }
+    fn set_mem_hl(&self, mem: &mut memory::Memory, v: u8) {
+        mem.set(((self.register_h as u16) << 8) + self.register_l as u16, v);
+    }
 
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
+        let break_point = self.register_pc - 1 == 0x026f;
+        if break_point {
+            self.register_pc -= 1;
+            println!("before {}", self);
+            self.register_pc += 1;
+        }
         let cpu_cycle_in_16mhz = match op_addr {
             0xcb => {
                 let cb_op_addr: u8 = mem.get(self.get_pc_and_move());
@@ -581,6 +596,7 @@ impl CPU {
             0x31 => ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => ld!(self, mem, "(HL)"-, A, 8),
             0x33 => inc!(self, SP, 8),
+            0x36 => ld!(self, mem, "(HL)", get_mem_u8, 12),
             0x38 => jr!(self, mem, C, 12, 8),
             0x3c => inc!(self, A, 4),
             0x3d => dec!(self, A, 4),
@@ -653,8 +669,16 @@ impl CPU {
             }
             0xfe => cp!(self, mem, "d8", 8),
             // 0xff => rst!(self, mem, 0x38, 16),
-            _ => todo!("opcode 0x{:02X} \n{}", op_addr, self),
+            _ => {
+                self.register_pc -= 1;
+                println!("opcode 0x{:02X} \n{}", op_addr, self);
+                panic!()
+            }
         };
+        if break_point {
+            println!("after {}", self);
+            panic!();
+        }
         cpu_cycle_in_16mhz / 4
     }
 }
