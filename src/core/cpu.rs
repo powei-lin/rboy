@@ -245,6 +245,19 @@ macro_rules! xor {
         $len
     }};
 }
+macro_rules! or {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            $self.register_a |= v;
+            let z = $self.register_a == 0;
+            $self.set_flag(&Flag::Z(z));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H(false));
+            $self.set_flag(&Flag::C(false));
+        }
+        $len
+    }};
+}
 macro_rules! sub {
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
@@ -560,7 +573,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0xf26f;
+        let break_point = self.register_pc - 1 == 0x29a8;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -670,6 +683,7 @@ impl CPU {
             0x94 => sub!(self, H, 4),
             0x95 => sub!(self, L, 4),
             0xaf => xor!(self, A, 4),
+            0xb1 => or!(self, C, 4),
             0xbe => cp!(self, mem, (HL), 8),
             0xc1 => pop!(self, mem, BC, 12),
             0xc3 => jp!(self, mem, "a16", 16),
@@ -685,6 +699,10 @@ impl CPU {
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
             0xf3 => {
                 self.interrupt_master_enable_flag = false;
+                4
+            }
+            0xfb => {
+                self.interrupt_master_enable_flag = true;
                 4
             }
             0xfe => cp!(self, mem, "d8", 8),
