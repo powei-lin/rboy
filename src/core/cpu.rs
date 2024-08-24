@@ -203,6 +203,13 @@ macro_rules! dec {
         }
         $len
     }};
+    ($self:expr, $reg:ident, $len:expr, no_flag) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let v = v - 1;
+            $self.set_value(&RegisterValue::$reg(v));
+        }
+        $len
+    }};
 }
 
 macro_rules! inc {
@@ -575,6 +582,7 @@ impl CPU {
             0x04 => inc!(self, B, 4),
             0x05 => dec!(self, B, 4),
             0x06 => ld!(self, mem, B, get_mem_u8, 8),
+            0x0b => dec!(self, BC, 8, no_flag),
             0x0c => inc!(self, C, 4),
             0x0d => dec!(self, C, 4),
             0x0e => ld!(self, mem, C, get_mem_u8, 8),
@@ -586,6 +594,7 @@ impl CPU {
             0x17 => rla(self, 4),
             0x18 => jr!(self, mem, 12),
             0x1a => ld!(self, mem, A, (DE), 8),
+            0x1b => dec!(self, DE, 8, no_flag),
             0x1c => inc!(self, E, 4),
             0x1d => dec!(self, E, 4),
             0x1e => ld!(self, mem, E, get_mem_u8, 8),
@@ -598,6 +607,7 @@ impl CPU {
             0x26 => ld!(self, mem, H, get_mem_u8, 8),
             0x28 => jr!(self, mem, Z, 12, 8),
             0x2a => ld!(self, mem, A, "(HL)", +, 8),
+            0x2b => dec!(self, HL, 8, no_flag),
             0x2c => inc!(self, L, 4),
             0x2d => dec!(self, L, 4),
             0x2e => ld!(self, mem, L, get_mem_u8, 8),
@@ -607,6 +617,7 @@ impl CPU {
             0x33 => inc!(self, SP, 8),
             0x36 => ld!(self, mem, "(HL)", get_mem_u8, 12),
             0x38 => jr!(self, mem, C, 12, 8),
+            0x3b => dec!(self, SP, 8, no_flag),
             0x3c => inc!(self, A, 4),
             0x3d => dec!(self, A, 4),
             0x3e => ld!(self, mem, A, get_mem_u8, 8),
