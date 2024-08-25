@@ -443,6 +443,12 @@ fn cp_impl(cpu: &mut CPU, t: u8) {
     cpu.set_flag(&Flag::C(c));
 }
 
+fn cpl(cpu: &mut CPU) -> u8 {
+    cpu.register_a = !cpu.register_a;
+    cpu.register_f = cpu.register_f | 0b01100000;
+    4
+}
+
 macro_rules! cp {
     ($self:expr, $mem:ident, "d8", $len:expr) => {{
         let t = $self.get_mem_u8($mem);
@@ -580,7 +586,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0x29aa;
+        let break_point = self.register_pc - 1 == 0xffaa;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -631,6 +637,7 @@ impl CPU {
             0x2c => inc!(self, L, 4),
             0x2d => dec!(self, L, 4),
             0x2e => ld!(self, mem, L, get_mem_u8, 8),
+            0x2f => cpl(self),
             0x30 => jr!(self, mem, "N", C, 12, 8),
             0x31 => ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => ld!(self, mem, "(HL)", -, A, 8),
