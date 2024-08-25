@@ -168,6 +168,13 @@ macro_rules! ldh {
         $self.set_value(&RegisterValue::$to_v(v));
         $len
     }};
+    ($self:expr, $mem:ident, "(a8)", $from_v:ident, $len:expr) => {{
+        if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
+            let addr = $self.get_mem_u8($mem) as u16 + 0xff00;
+            $mem.set(addr, v);
+        }
+        $len
+    }};
 }
 macro_rules! push {
     ($self:expr, $mem:ident, $reg:ident, $len:expr) => {{
@@ -573,7 +580,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0x29a8;
+        let break_point = self.register_pc - 1 == 0x29aa;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -692,7 +699,7 @@ impl CPU {
             0xcc => call!(self, mem, Z, "a16", 24, 12),
             0xcd => call!(self, mem, "a16", 24),
             0xd1 => pop!(self, mem, DE, 12),
-            0xe0 => ld!(self, mem, "(a8)", A, 12),
+            0xe0 => ldh!(self, mem, "(a8)", A, 12),
             0xe1 => pop!(self, mem, HL, 12),
             0xe2 => ld!(self, mem, ff(C), A, 8),
             0xea => ld!(self, mem, "(a16)", A, 16),

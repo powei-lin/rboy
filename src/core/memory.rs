@@ -33,6 +33,8 @@ impl Memory {
         data[WINDOW_Y_POSITION_RW as usize] = 0;
         data[WINDOW_X_POSITION_MINUS_7_RW as usize] = 0;
         data[DISABLE_BOOT_ROM] = 0;
+        // lower 4 bits 0 means no key is pressed
+        data[IO_START] = 0b11001111;
 
         Memory {
             data,
@@ -70,7 +72,16 @@ impl Memory {
         &self.data[addr..addr + size]
     }
     pub fn set(&mut self, addr: u16, val: u8) {
-        self.data[addr as usize] = val;
+        match addr {
+            // joy pad is read only from cpu
+            0xff00 => {
+                self.data[addr as usize] =
+                    (val & 0b00110000) + 0b11000000 + (self.data[0xff00] & 0x0f);
+            }
+            _ => {
+                self.data[addr as usize] = val;
+            }
+        }
     }
     pub fn get_bit(&self, addr: u16, bit: u8) -> bool {
         (self.get(addr) & (1 << bit)) != 0
