@@ -265,6 +265,17 @@ macro_rules! or {
         $len
     }};
 }
+macro_rules! and {
+    ($self:expr, $mem:ident, "d8", $len:expr) => {{
+        $self.register_a &= $self.get_mem_u8($mem);
+        let z = $self.register_a == 0;
+        $self.set_flag(&Flag::Z(z));
+        $self.set_flag(&Flag::N(false));
+        $self.set_flag(&Flag::H(true));
+        $self.set_flag(&Flag::C(false));
+        $len
+    }};
+}
 macro_rules! sub {
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
@@ -599,7 +610,10 @@ impl CPU {
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
                     0x7c => return bit!(self, register_h, 7, 8),
-                    _ => todo!("cb opcode 0x{:02X} \n{}", cb_op_addr, self),
+                    _ => {
+                        self.register_pc -= 2;
+                        todo!("cb opcode 0x{:02X} \n{}", cb_op_addr, self)
+                    }
                 }
             }
             0x00 => 4,
@@ -709,6 +723,7 @@ impl CPU {
             0xe0 => ldh!(self, mem, "(a8)", A, 12),
             0xe1 => pop!(self, mem, HL, 12),
             0xe2 => ld!(self, mem, ff(C), A, 8),
+            0xe6 => and!(self, mem, "d8", 8),
             0xea => ld!(self, mem, "(a16)", A, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
             0xf3 => {
