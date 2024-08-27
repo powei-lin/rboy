@@ -31,10 +31,6 @@ impl Core {
         if cpu_cycle_in_4mhz == 0 {
             return true;
         }
-        if self.mem.get(DISABLE_BOOT_ROM as u16) > 0 {
-            println!("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            // panic!();
-        }
         // if cpu_before_tick == self.cpu{
         //     panic!("cpu is not changing. {}", self.cpu);
         // }

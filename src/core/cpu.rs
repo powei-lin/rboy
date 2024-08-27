@@ -302,19 +302,34 @@ macro_rules! sub {
     }};
 }
 macro_rules! add {
-    // ($self:expr, $reg_to:ident, $reg_from:ident, $len:expr) => {{
-    //     // if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
-    //     //     let z = ($self.register_a == v);
-    //     //     let h = ($self.register_a & 0xf) < (v & 0xf);
-    //     //     let c = $self.register_a < v;
-    //     //     $self.register_a -= v;
-    //     //     $self.set_flag(&Flag::Z(z));
-    //     //     $self.set_flag(&Flag::N(true));
-    //     //     $self.set_flag(&Flag::H(h));
-    //     //     $self.set_flag(&Flag::C(c));
-    //     // }
-    //     $len
-    // }};
+    ($self:expr, $reg_to:ident, $reg_from:ident, 4) => {{
+        if let RegisterValue::$reg_to(v0) = $self.get_value(&RegisterValue::$reg_to(0)) {
+            if let RegisterValue::$reg_from(v1) = $self.get_value(&RegisterValue::$reg_from(0)) {
+                let h = (v1 & 0xf) > (0xf - (v0 & 0xf));
+                let c = v1 > (0xff - v0);
+                let z = (v0 + v1 == 0);
+                $self.set_value(&RegisterValue::$reg_to(v0 + v1));
+                $self.set_flag(&Flag::Z(z));
+                $self.set_flag(&Flag::N(false));
+                $self.set_flag(&Flag::H(h));
+                $self.set_flag(&Flag::C(c));
+            }
+        }
+        4
+    }};
+    ($self:expr, $reg_to:ident, $reg_from:ident, 8) => {{
+        if let RegisterValue::$reg_to(v0) = $self.get_value(&RegisterValue::$reg_to(0)) {
+            if let RegisterValue::$reg_from(v1) = $self.get_value(&RegisterValue::$reg_from(0)) {
+                let h = (v1 & 0xfff) > (0xfff - (v0 & 0xfff));
+                let c = v1 > (0xffff - v0);
+                $self.set_value(&RegisterValue::$reg_to(v0 + v1));
+                $self.set_flag(&Flag::N(false));
+                $self.set_flag(&Flag::H(h));
+                $self.set_flag(&Flag::C(c));
+            }
+        }
+        8
+    }};
     ($self:expr, $mem:ident, $reg:ident, (HL), $len:expr) => {{
         if let RegisterValue::$reg(v0) = $self.get_value(&RegisterValue::$reg(0)) {
             let v1 = $self.get_mem_hl($mem);
@@ -622,7 +637,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0xffaa;
+        let mut break_point = self.register_pc - 1 == 0xffaa;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -659,6 +674,7 @@ impl CPU {
             0x16 => ld!(self, mem, D, get_mem_u8, 8),
             0x17 => rla(self, 4),
             0x18 => jr!(self, mem, 12),
+            0x19 => add!(self, HL, DE, 8),
             0x1a => ld!(self, mem, A, (DE), 8),
             0x1b => dec!(self, DE, 8, no_flag),
             0x1c => inc!(self, E, 4),
@@ -707,6 +723,8 @@ impl CPU {
             0x54 => ld!(self, D, H, 4),
             0x55 => ld!(self, D, L, 4),
             0x57 => ld!(self, D, A, 4),
+            0x5e => ld!(self, mem, E, (HL), 8),
+            0x5f => ld!(self, E, A, 4),
             0x60 => ld!(self, H, B, 4),
             0x61 => ld!(self, H, C, 4),
             0x62 => ld!(self, H, D, 4),
@@ -730,6 +748,7 @@ impl CPU {
             0x7c => ld!(self, A, H, 4),
             0x7d => ld!(self, A, L, 4),
             0x86 => add!(self, mem, A, (HL), 8),
+            0x87 => add!(self, A, A, 4),
             0x90 => sub!(self, B, 4),
             0x91 => sub!(self, C, 4),
             0x92 => sub!(self, D, 4),
