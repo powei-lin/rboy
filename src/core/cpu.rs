@@ -266,6 +266,16 @@ macro_rules! or {
     }};
 }
 macro_rules! and {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            $self.register_a &= v;
+            $self.set_flag(&Flag::Z($self.register_a == 0));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H(true));
+            $self.set_flag(&Flag::C(false));
+        }
+        $len
+    }};
     ($self:expr, $mem:ident, "d8", $len:expr) => {{
         $self.register_a &= $self.get_mem_u8($mem);
         let z = $self.register_a == 0;
@@ -473,6 +483,21 @@ macro_rules! cp {
     }};
 }
 
+macro_rules! swap {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let swap_v = ((v & 0xf) << 4) + (v >> 4);
+            $self.set_value(&RegisterValue::$reg(swap_v));
+            // set flag
+            $self.set_flag(&Flag::Z(swap_v == 0));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H(false));
+            $self.set_flag(&Flag::C(false));
+        }
+        $len
+    }};
+}
+
 macro_rules! rst {
     ($self:expr, $mem:ident, $num:expr, $len:expr) => {{
         $mem.set($self.register_sp - 1, ($self.register_pc >> 8) as u8);
@@ -609,6 +634,7 @@ impl CPU {
                 println!("cb instruction {:02x}", cb_op_addr);
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
+                    0x37 => swap!(self, A, 8),
                     0x7c => return bit!(self, register_h, 7, 8),
                     _ => {
                         self.register_pc -= 2;
@@ -710,8 +736,21 @@ impl CPU {
             0x93 => sub!(self, E, 4),
             0x94 => sub!(self, H, 4),
             0x95 => sub!(self, L, 4),
+            0xa1 => and!(self, C, 4),
+            0xa8 => xor!(self, B, 4),
+            0xa9 => xor!(self, C, 4),
+            0xaa => xor!(self, D, 4),
+            0xab => xor!(self, E, 4),
+            0xac => xor!(self, H, 4),
+            0xad => xor!(self, L, 4),
             0xaf => xor!(self, A, 4),
+            0xb0 => or!(self, B, 4),
             0xb1 => or!(self, C, 4),
+            0xb2 => or!(self, D, 4),
+            0xb3 => or!(self, E, 4),
+            0xb4 => or!(self, H, 4),
+            0xb5 => or!(self, L, 4),
+            0xb7 => or!(self, A, 4),
             0xbe => cp!(self, mem, (HL), 8),
             0xc1 => pop!(self, mem, BC, 12),
             0xc3 => jp!(self, mem, "a16", 16),
