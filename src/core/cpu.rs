@@ -441,6 +441,10 @@ macro_rules! jr {
 }
 
 macro_rules! jp {
+    ($self:expr, $mem:ident, (HL), $len:expr) => {{
+        $self.register_pc = (($self.register_h as u16) << 8) + $self.register_l as u16;
+        $len
+    }};
     ($self:expr, $mem:ident, "a16", $len:expr) => {{
         let addr = $self.get_mem_u16($mem);
         $self.register_pc = addr;
@@ -637,7 +641,7 @@ impl CPU {
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!("instruction {:02x}", op_addr);
-        let mut break_point = self.register_pc - 1 == 0xffaa;
+        let break_point = self.register_pc - 1 == 0xffaa;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -794,6 +798,7 @@ impl CPU {
             0xe5 => push!(self, mem, HL, 16),
             0xe6 => and!(self, mem, "d8", 8),
             0xe7 => rst!(self, mem, 0x20, 16),
+            0xe9 => jp!(self, mem, (HL), 4),
             0xea => ld!(self, mem, "(a16)", A, 16),
             0xef => rst!(self, mem, 0x28, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
