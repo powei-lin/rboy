@@ -755,26 +755,33 @@ impl CPU {
             0xc1 => pop!(self, mem, BC, 12),
             0xc3 => jp!(self, mem, "a16", 16),
             0xc5 => push!(self, mem, BC, 16),
+            0xc7 => rst!(self, mem, 0x00, 16),
             0xc9 => ret(self, mem),
             0xcc => call!(self, mem, Z, "a16", 24, 12),
             0xcd => call!(self, mem, "a16", 24),
+            0xcf => rst!(self, mem, 0x08, 16),
             0xd1 => pop!(self, mem, DE, 12),
+            0xd7 => rst!(self, mem, 0x10, 16),
+            0xdf => rst!(self, mem, 0x18, 16),
             0xe0 => ldh!(self, mem, "(a8)", A, 12),
             0xe1 => pop!(self, mem, HL, 12),
             0xe2 => ld!(self, mem, ff(C), A, 8),
             0xe6 => and!(self, mem, "d8", 8),
+            0xe7 => rst!(self, mem, 0x20, 16),
             0xea => ld!(self, mem, "(a16)", A, 16),
+            0xef => rst!(self, mem, 0x28, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
             0xf3 => {
                 self.interrupt_master_enable_flag = false;
                 4
             }
+            0xf7 => rst!(self, mem, 0x30, 16),
             0xfb => {
                 self.interrupt_master_enable_flag = true;
                 4
             }
             0xfe => cp!(self, mem, "d8", 8),
-            // 0xff => rst!(self, mem, 0x38, 16),
+            0xff => rst!(self, mem, 0x38, 16),
             _ => {
                 self.register_pc -= 1;
                 println!("opcode 0x{:02X} \n{}", op_addr, self);
