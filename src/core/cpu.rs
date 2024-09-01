@@ -211,6 +211,18 @@ macro_rules! pop {
 }
 
 macro_rules! dec {
+    ($self:expr, $mem:ident, (HL), $len:expr) => {{
+        if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
+            let v = $mem.get(addr);
+            let h = ((v & 0xf) == 0);
+            let v = v - 1;
+            $mem.set(addr, v);
+            $self.set_flag(&Flag::Z(v == 0));
+            $self.set_flag(&Flag::N(true));
+            $self.set_flag(&Flag::H(h));
+        }
+        $len
+    }};
     ($self:expr, $reg:ident, $len:expr) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
             let h = ((v & 0xf) == 0);
@@ -680,9 +692,17 @@ impl CPU {
 
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
+        // check interrupt first
+
         let op_addr: u8 = mem.get(self.get_pc_and_move());
-        println!("instruction {:02x}", op_addr);
-        let break_point = self.register_pc - 1 == 0xffaa;
+        println!(
+            "instruction {:02x} pc:{:04X} {:02X} {}",
+            op_addr,
+            self.register_pc - 1,
+            mem.get(0xff85),
+            self.interrupt_master_enable_flag
+        );
+        let break_point = self.register_pc - 1 == 0x02bb;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -745,6 +765,7 @@ impl CPU {
             0x31 => ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => ld!(self, mem, "(HL)", -, A, 8),
             0x33 => inc!(self, SP, 8),
+            0x35 => dec!(self, mem, (HL), 12),
             0x36 => ld!(self, mem, "(HL)", get_mem_u8, 12),
             0x38 => jr!(self, mem, C, 12, 8),
             0x3b => dec!(self, SP, 8, no_flag),
