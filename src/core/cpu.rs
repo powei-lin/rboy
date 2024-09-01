@@ -246,6 +246,17 @@ macro_rules! dec {
 }
 
 macro_rules! inc {
+    ($self:expr, $mem:ident, (HL), 12) => {{
+        if let RegisterValue::HL(addr) = $self.get_value(&RegisterValue::HL(0)) {
+            let v = $mem.get(addr);
+            let v = v + 1;
+            $mem.set(addr, v);
+            $self.set_flag(&Flag::Z(v == 0));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H((v & 0xf) == 0));
+        }
+        12
+    }};
     ($self:expr, $reg:ident, 4) => {{
         if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
             let v = v + 1;
@@ -518,6 +529,14 @@ macro_rules! ret {
             $len1
         }
     }};
+    ($self:expr, $mem:ident, "N", $flag:ident, $len0:expr, $len1:expr) => {{
+        let c = check_condition!($self, "N", $flag);
+        if c {
+            ret($self, $mem, $len0)
+        } else {
+            $len1
+        }
+    }};
 }
 fn cp_impl(cpu: &mut CPU, t: u8) {
     let z = cpu.register_a == t;
@@ -724,10 +743,8 @@ impl CPU {
 
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
-        // check interrupt first
-        if self.interrupt_master_enable_flag && self.check_interrupt(mem) {
-            return 0;
-        }
+        // check interrupt first but execute after
+        let need_interrupt = self.interrupt_master_enable_flag;
 
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!(
@@ -741,6 +758,7 @@ impl CPU {
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
+            println!("mem sp {:02X} {:02X}", mem.get(self.register_sp), mem.get(self.register_sp  + 1));
             self.register_pc += 1;
         }
         let cpu_cycle_in_16mhz = match op_addr {
@@ -800,6 +818,7 @@ impl CPU {
             0x31 => ld!(self, mem, SP, get_mem_u16, 12),
             0x32 => ld!(self, mem, "(HL)", -, A, 8),
             0x33 => inc!(self, SP, 8),
+            0x34 => inc!(self, mem, (HL), 12),
             0x35 => dec!(self, mem, (HL), 12),
             0x36 => ld!(self, mem, "(HL)", get_mem_u8, 12),
             0x38 => jr!(self, mem, C, 12, 8),
@@ -886,6 +905,7 @@ impl CPU {
             0xb7 => or!(self, A, 4),
             0xb9 => cp!(self, C, 4), // need to verify
             0xbe => cp!(self, mem, (HL), 8),
+            0xc0 => ret!(self, mem, "N", Z, 20, 8),
             0xc1 => pop!(self, mem, BC, 12),
             0xc3 => jp!(self, mem, "a16", 16),
             0xc5 => push!(self, mem, BC, 16),
@@ -930,6 +950,9 @@ impl CPU {
                 panic!()
             }
         };
+        if need_interrupt{
+            self.check_interrupt(mem);
+        }
         if break_point {
             println!("after {}", self);
             panic!();
