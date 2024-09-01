@@ -456,6 +456,16 @@ macro_rules! jp {
         $self.register_pc = addr;
         $len
     }};
+    ($self:expr, $mem:ident, $flag:ident, "a16", $len0:expr, $len1:expr) => {{
+        let c = check_condition!($self, $flag);
+        let addr = $self.get_mem_u16($mem);
+        if c {
+            $self.register_pc = addr;
+            $len0
+        } else {
+            $len1
+        }
+    }};
 }
 
 fn rla(cpu: &mut CPU, len: u8) -> u8 {
@@ -781,7 +791,13 @@ impl CPU {
             0x93 => sub!(self, E, 4),
             0x94 => sub!(self, H, 4),
             0x95 => sub!(self, L, 4),
+            0xa0 => and!(self, B, 4),
             0xa1 => and!(self, C, 4),
+            0xa2 => and!(self, D, 4),
+            0xa3 => and!(self, E, 4),
+            0xa4 => and!(self, H, 4),
+            0xa5 => and!(self, L, 4),
+            0xa7 => and!(self, A, 4),
             0xa8 => xor!(self, B, 4),
             0xa9 => xor!(self, C, 4),
             0xaa => xor!(self, D, 4),
@@ -802,6 +818,7 @@ impl CPU {
             0xc5 => push!(self, mem, BC, 16),
             0xc7 => rst!(self, mem, 0x00, 16),
             0xc9 => ret(self, mem),
+            0xca => jp!(self, mem, Z, "a16", 16, 12),
             0xcc => call!(self, mem, Z, "a16", 24, 12),
             0xcd => call!(self, mem, "a16", 24),
             0xcf => rst!(self, mem, 0x08, 16),
@@ -825,7 +842,7 @@ impl CPU {
             }
             0xf5 => push!(self, mem, AF, 16),
             0xf7 => rst!(self, mem, 0x30, 16),
-            0xfa => ldh!(self, mem, A, "(a16)", 16), // ld
+            0xfa => ldh!(self, mem, A, "(a16)", 16), // it's actually ld
             0xfb => {
                 self.interrupt_master_enable_flag = true;
                 4
