@@ -554,6 +554,11 @@ fn cpl(cpu: &mut CPU) -> u8 {
     4
 }
 
+fn reti(cpu: &mut CPU, mem: &mut memory::Memory) -> u8 {
+    cpu.interrupt_master_enable_flag = true;
+    ret(cpu, mem, 16)
+}
+
 macro_rules! cp {
     ($self:expr, $mem:ident, "d8", $len:expr) => {{
         let t = $self.get_mem_u8($mem);
@@ -754,11 +759,15 @@ impl CPU {
             mem.get(0xff85),
             self.interrupt_master_enable_flag
         );
-        let break_point = self.register_pc - 1 == 0xf2bb;
+        let break_point = self.register_pc - 1 == 0x020b;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
-            println!("mem sp {:02X} {:02X}", mem.get(self.register_sp), mem.get(self.register_sp  + 1));
+            println!(
+                "mem sp {:02X} {:02X}",
+                mem.get(self.register_sp),
+                mem.get(self.register_sp + 1)
+            );
             self.register_pc += 1;
         }
         let cpu_cycle_in_16mhz = match op_addr {
@@ -919,6 +928,7 @@ impl CPU {
             0xd1 => pop!(self, mem, DE, 12),
             0xd5 => push!(self, mem, DE, 16),
             0xd7 => rst!(self, mem, 0x10, 16),
+            0xd9 => reti(self, mem),
             0xdf => rst!(self, mem, 0x18, 16),
             0xe0 => ldh!(self, mem, "(a8)", A, 12),
             0xe1 => pop!(self, mem, HL, 12),
@@ -950,7 +960,7 @@ impl CPU {
                 panic!()
             }
         };
-        if need_interrupt{
+        if need_interrupt {
             self.check_interrupt(mem);
         }
         if break_point {
