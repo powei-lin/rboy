@@ -482,13 +482,23 @@ fn rla(cpu: &mut CPU, len: u8) -> u8 {
     len
 }
 
-fn ret(cpu: &mut CPU, mem: &memory::Memory) -> u8 {
+fn ret(cpu: &mut CPU, mem: &memory::Memory, len: u8) -> u8 {
     let v = mem.get(cpu.register_sp) as u16 + ((mem.get(cpu.register_sp + 1) as u16) << 8);
     cpu.register_sp += 2;
     cpu.register_pc = v;
-    16
+    len
 }
 
+macro_rules! ret {
+    ($self:expr, $mem:ident, $flag:ident, $len0:expr, $len1:expr) => {{
+        let c = check_condition!($self, $flag);
+        if c {
+            ret($self, $mem, $len0)
+        } else {
+            $len1
+        }
+    }};
+}
 fn cp_impl(cpu: &mut CPU, t: u8) {
     let z = cpu.register_a == t;
     let h = (cpu.register_a & 0xf) < (t & 0xf);
@@ -817,7 +827,8 @@ impl CPU {
             0xc3 => jp!(self, mem, "a16", 16),
             0xc5 => push!(self, mem, BC, 16),
             0xc7 => rst!(self, mem, 0x00, 16),
-            0xc9 => ret(self, mem),
+            0xc8 => ret!(self, mem, Z, 20, 8),
+            0xc9 => ret(self, mem, 16),
             0xca => jp!(self, mem, Z, "a16", 16, 12),
             0xcc => call!(self, mem, Z, "a16", 24, 12),
             0xcd => call!(self, mem, "a16", 24),
