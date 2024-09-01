@@ -544,6 +544,12 @@ macro_rules! cp {
         cp_impl($self, t);
         $len
     }};
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            cp_impl($self, v);
+        }
+        $len
+    }};
 }
 
 macro_rules! swap {
@@ -690,9 +696,18 @@ impl CPU {
         mem.set(((self.register_h as u16) << 8) + self.register_l as u16, v);
     }
 
+    fn check_interrupt(&mut self, mem: &mut memory::Memory) -> bool {
+        if self.interrupt_master_enable_flag {}
+
+        false
+    }
+
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         // check interrupt first
+        if self.check_interrupt(mem) {
+            return 0;
+        }
 
         let op_addr: u8 = mem.get(self.get_pc_and_move());
         println!(
@@ -702,7 +717,7 @@ impl CPU {
             mem.get(0xff85),
             self.interrupt_master_enable_flag
         );
-        let break_point = self.register_pc - 1 == 0x02bb;
+        let break_point = self.register_pc - 1 == 0xf2bb;
         if break_point {
             self.register_pc -= 1;
             println!("before {}", self);
@@ -849,6 +864,7 @@ impl CPU {
             0xb4 => or!(self, H, 4),
             0xb5 => or!(self, L, 4),
             0xb7 => or!(self, A, 4),
+            0xb9 => cp!(self, C, 4), // need to verify
             0xbe => cp!(self, mem, (HL), 8),
             0xc1 => pop!(self, mem, BC, 12),
             0xc3 => jp!(self, mem, "a16", 16),
