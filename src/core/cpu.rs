@@ -168,6 +168,12 @@ macro_rules! ldh {
         $self.set_value(&RegisterValue::$to_v(v));
         $len
     }};
+    ($self:expr, $mem:ident, $to_v:ident, "(a16)", $len:expr) => {{
+        let addr = $self.get_mem_u16($mem);
+        let v = $mem.get(addr);
+        $self.set_value(&RegisterValue::$to_v(v));
+        $len
+    }};
     ($self:expr, $mem:ident, "(a8)", $from_v:ident, $len:expr) => {{
         if let RegisterValue::$from_v(v) = $self.get_value(&RegisterValue::$from_v(0)) {
             let addr = $self.get_mem_u8($mem) as u16 + 0xff00;
@@ -526,6 +532,15 @@ macro_rules! rst {
         $len
     }};
 }
+macro_rules! res {
+    ($self:expr, $num:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let t = v & !(1 << $num);
+            $self.set_value(&RegisterValue::$reg(t));
+        }
+        $len
+    }};
+}
 
 impl CPU {
     pub fn new() -> CPU {
@@ -654,7 +669,8 @@ impl CPU {
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
                     0x37 => swap!(self, A, 8),
-                    0x7c => return bit!(self, register_h, 7, 8),
+                    0x7c => bit!(self, register_h, 7, 8),
+                    0x87 => res!(self, 0, A, 8),
                     _ => {
                         self.register_pc -= 2;
                         todo!("cb opcode 0x{:02X} \n{}", cb_op_addr, self)
@@ -672,6 +688,7 @@ impl CPU {
             0x0d => dec!(self, C, 4),
             0x0e => ld!(self, mem, C, get_mem_u8, 8),
             0x11 => ld!(self, mem, DE, get_mem_u16, 12),
+            0x12 => ld!(self, mem, (DE), A, 8),
             0x13 => inc!(self, DE, 8),
             0x14 => inc!(self, D, 4),
             0x15 => dec!(self, D, 4),
@@ -808,6 +825,7 @@ impl CPU {
             }
             0xf5 => push!(self, mem, AF, 16),
             0xf7 => rst!(self, mem, 0x30, 16),
+            0xfa => ldh!(self, mem, A, "(a16)", 16), // ld
             0xfb => {
                 self.interrupt_master_enable_flag = true;
                 4
