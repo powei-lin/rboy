@@ -1,6 +1,8 @@
 use std::fmt::{self, Display, Formatter};
 
 use crate::core::memory;
+
+use super::constants::{INTERRPUT_LIST, INTERRUPT_ENABLE, INTERRUPT_FLAG};
 pub enum RegisterValue {
     A(u8),
     F(u8),
@@ -697,15 +699,33 @@ impl CPU {
     }
 
     fn check_interrupt(&mut self, mem: &mut memory::Memory) -> bool {
-        if self.interrupt_master_enable_flag {}
-
-        false
+        if ((mem.get(INTERRUPT_FLAG) & mem.get(INTERRUPT_ENABLE)) & 0b11111) > 0 {
+            for (bit, target_addr) in INTERRPUT_LIST.iter().enumerate() {
+                if mem.get_bit(INTERRUPT_FLAG, bit as u8)
+                    && mem.get_bit(INTERRUPT_ENABLE, bit as u8)
+                {
+                    println!("interrupt jump to {:04X}", target_addr);
+                    let flag_bit = 1 << bit;
+                    let v = mem.get(INTERRUPT_FLAG) ^ flag_bit;
+                    mem.set(INTERRUPT_FLAG, v);
+                    mem.set(self.register_sp - 1, (self.register_pc >> 8) as u8);
+                    mem.set(self.register_sp - 2, (self.register_pc & 0xff) as u8);
+                    self.register_sp -= 2;
+                    self.register_pc = *target_addr;
+                    self.interrupt_master_enable_flag = false;
+                    break;
+                }
+            }
+            true
+        } else {
+            false
+        }
     }
 
     /// return cpu cycle in 4 MHz
     pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
         // check interrupt first
-        if self.check_interrupt(mem) {
+        if self.interrupt_master_enable_flag && self.check_interrupt(mem) {
             return 0;
         }
 

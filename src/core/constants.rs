@@ -8,6 +8,22 @@ pub const BG_PALETTE_DATA: u16 = 0xff47;
 pub const WINDOW_Y_POSITION_RW: u16 = 0xff4a;
 pub const WINDOW_X_POSITION_MINUS_7_RW: u16 = 0xff4b;
 
+// interrupt
+pub const INTERRUPT_ENABLE: u16 = 0xffff;
+pub const INTERRUPT_FLAG: u16 = 0xff0f;
+pub const INTR_VBLANK: u16 = 0x0040;
+pub const INTR_LCDC: u16 = 0x0048;
+pub const INTR_TIMER: u16 = 0x0050;
+pub const INTR_SERIAL: u16 = 0x0058;
+pub const INTR_HIGHTOLOW: u16 = 0x0060;
+pub const INTERRPUT_LIST: [u16; 5] = [
+    INTR_VBLANK,
+    INTR_LCDC,
+    INTR_TIMER,
+    INTR_SERIAL,
+    INTR_HIGHTOLOW,
+];
+
 // io ranges
 pub const DISABLE_BOOT_ROM: usize = 0xff50;
 
