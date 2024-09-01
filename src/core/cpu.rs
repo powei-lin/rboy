@@ -195,6 +195,12 @@ macro_rules! push {
 }
 
 macro_rules! pop {
+    ($self:expr, $mem:ident, AF, $len:expr) => {{
+        $self.register_a = $mem.get($self.register_sp + 1);
+        $self.register_f = ($mem.get($self.register_sp) & 0xf0);
+        $self.register_sp += 2;
+        $len
+    }};
     ($self:expr, $mem:ident, $reg:ident, $len:expr) => {{
         let v =
             $mem.get($self.register_sp) as u16 + (($mem.get($self.register_sp + 1) as u16) << 8);
@@ -847,6 +853,7 @@ impl CPU {
             0xea => ld!(self, mem, "(a16)", A, 16),
             0xef => rst!(self, mem, 0x28, 16),
             0xf0 => ldh!(self, mem, A, "(a8)", 12),
+            0xf1 => pop!(self, mem, AF, 12),
             0xf3 => {
                 self.interrupt_master_enable_flag = false;
                 4
