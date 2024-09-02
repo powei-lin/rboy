@@ -747,7 +747,7 @@ impl CPU {
     }
 
     /// return cpu cycle in 4 MHz
-    pub fn tick(&mut self, mem: &mut memory::Memory) -> u8 {
+    pub fn tick(&mut self, mem: &mut memory::Memory, break_point: Option<u16>) -> u8 {
         // check interrupt first but execute after
         let need_interrupt = self.interrupt_master_enable_flag;
 
@@ -759,8 +759,12 @@ impl CPU {
             mem.get(0xff85),
             self.interrupt_master_enable_flag
         );
-        let break_point = self.register_pc - 1 == 0x020b;
-        if break_point {
+        let need_break = if let Some(bp) = break_point {
+            self.register_pc - 1 == bp
+        } else {
+            false
+        };
+        if need_break {
             self.register_pc -= 1;
             println!("before {}", self);
             println!(
@@ -963,7 +967,7 @@ impl CPU {
         if need_interrupt {
             self.check_interrupt(mem);
         }
-        if break_point {
+        if need_break {
             println!("after {}", self);
             panic!();
         }

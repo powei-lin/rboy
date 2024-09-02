@@ -24,10 +24,10 @@ impl Core {
         let game_rom = fs::read(game_rom_path).expect("game rom path");
         self.mem.game_rom = game_rom;
     }
-    pub fn tick(&mut self) -> bool {
+    pub fn tick(&mut self, break_point_option: Option<u16>) -> bool {
         // println!("cpu start");
         // let cpu_before_tick = self.cpu.clone();
-        let cpu_cycle_in_4mhz = self.cpu.tick(&mut self.mem);
+        let cpu_cycle_in_4mhz = self.cpu.tick(&mut self.mem, break_point_option);
         if cpu_cycle_in_4mhz == 0 {
             return true;
         }

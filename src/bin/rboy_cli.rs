@@ -1,4 +1,5 @@
 use clap::Parser;
+use clap_num::maybe_hex;
 use macroquad::prelude::*;
 use rboy::core::constants::{LCD_HEIGHT, LCD_WIDTH};
 use rboy::{core, graphic};
@@ -18,6 +19,9 @@ struct RboyCli {
 
     #[arg(short, long, action)]
     debug: bool,
+
+    #[arg(short, long, value_parser=maybe_hex::<u16>)]
+    break_point: Option<u16>,
 }
 
 fn window_conf() -> Conf {
@@ -54,7 +58,7 @@ async fn main() {
         //     count, gameboy_core.cpu
         // );
         count += 1;
-        if gameboy_core.tick() {
+        if gameboy_core.tick(cli.break_point) {
             clear_background(LIGHTGRAY);
 
             screen.draw_frame();
