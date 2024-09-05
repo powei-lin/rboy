@@ -23,6 +23,11 @@ pub const INTERRPUT_LIST: [u16; 5] = [
     INTR_SERIAL,
     INTR_HIGHTOLOW,
 ];
+pub const INTR_VBLANK_BIT: u8 = 0;
+pub const INTR_LCDC_BIT: u8 = 1;
+pub const INTR_TIMER_BIT: u8 = 2;
+pub const INTR_SERIAL_BIT: u8 = 3;
+pub const INTR_HIGHTOLOW_BIT: u8 = 4;
 
 // io ranges
 pub const DISABLE_BOOT_ROM: usize = 0xff50;

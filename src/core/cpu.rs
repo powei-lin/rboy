@@ -728,7 +728,6 @@ impl CPU {
                 if mem.get_bit(INTERRUPT_FLAG, bit as u8)
                     && mem.get_bit(INTERRUPT_ENABLE, bit as u8)
                 {
-                    println!("interrupt jump to {:04X}", target_addr);
                     let flag_bit = 1 << bit;
                     let v = mem.get(INTERRUPT_FLAG) ^ flag_bit;
                     mem.set(INTERRUPT_FLAG, v);
@@ -752,13 +751,14 @@ impl CPU {
         let need_interrupt = self.interrupt_master_enable_flag;
 
         let op_addr: u8 = mem.get(self.get_pc_and_move());
-        println!(
-            "instruction {:02x} pc:{:04X} {:02X} {}",
-            op_addr,
-            self.register_pc - 1,
-            mem.get(0xff85),
-            self.interrupt_master_enable_flag
-        );
+        // println!(
+        //     "instruction {:02x} pc:{:04X} interrupt {:08b} {:08b} {}",
+        //     op_addr,
+        //     self.register_pc - 1,
+        //     mem.get(INTERRUPT_ENABLE),
+        //     mem.get(INTERRUPT_FLAG),
+        //     self.interrupt_master_enable_flag
+        // );
         let need_break = if let Some(bp) = break_point {
             self.register_pc - 1 == bp
         } else {

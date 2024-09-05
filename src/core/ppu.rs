@@ -250,6 +250,7 @@ impl PPU {
                         mem.oam_accessible = false;
                     } else {
                         self.current_state = PPUState::VBLANK;
+                        mem.set_bit(INTERRUPT_FLAG, INTR_VBLANK_BIT, true);
                         mem.vram_accessible = true;
                         mem.oam_accessible = true;
                         // draw frame
