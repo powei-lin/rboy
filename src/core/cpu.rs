@@ -1,4 +1,4 @@
-use std::fmt::{self, Display, Formatter};
+use std::{fmt::{self, Display, Formatter}, thread::sleep, time::Duration};
 
 use crate::core::memory;
 
@@ -612,6 +612,21 @@ macro_rules! res {
     }};
 }
 
+macro_rules! sla {
+    ($self:expr, $reg:ident, $len:expr) => {{
+        if let RegisterValue::$reg(v) = $self.get_value(&RegisterValue::$reg(0)) {
+            let t = (v << 1);
+            $self.set_value(&RegisterValue::$reg(t));
+            // set flag
+            $self.set_flag(&Flag::Z(v == 0));
+            $self.set_flag(&Flag::N(false));
+            $self.set_flag(&Flag::H(false));
+            $self.set_flag(&Flag::C(v >= 0b10000000));
+        }
+        $len
+    }};
+}
+
 impl CPU {
     pub fn new() -> CPU {
         CPU {
@@ -780,6 +795,7 @@ impl CPU {
                 println!("cb instruction {:02x}", cb_op_addr);
                 match cb_op_addr {
                     0x11 => rl!(self, C, 8),
+                    0x27 => sla!(self, A, 8),
                     0x37 => swap!(self, A, 8),
                     0x7c => bit!(self, register_h, 7, 8),
                     0x87 => res!(self, 0, A, 8),
@@ -795,6 +811,7 @@ impl CPU {
             0x04 => inc!(self, B, 4),
             0x05 => dec!(self, B, 4),
             0x06 => ld!(self, mem, B, get_mem_u8, 8),
+            0x09 => add!(self, HL, BC, 8),
             0x0b => dec!(self, BC, 8, no_flag),
             0x0c => inc!(self, C, 4),
             0x0d => dec!(self, C, 4),
@@ -872,6 +889,7 @@ impl CPU {
             0x66 => ld!(self, mem, H, (HL), 8),
             0x67 => ld!(self, H, A, 4),
             0x68 => ld!(self, L, B, 4),
+            0x69 => ld!(self, L, C, 4),
             0x6e => ld!(self, mem, L, (HL), 8),
             0x70 => ld!(self, mem, (HL), B, 8),
             0x71 => ld!(self, mem, (HL), C, 8),
